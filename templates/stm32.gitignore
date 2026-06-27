@@ -1,0 +1,14 @@
+Debug/
+Objects/
+Listings/
+.stm32_git_tool/
+*.uvguix.*
+*.uvguix
+*.uvgui.*
+*.uvgui
+*.build_log.htm
+*.htm
+*.map
+*.axf
+*.o
+*.d
