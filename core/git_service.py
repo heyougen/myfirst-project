@@ -7,9 +7,11 @@ from typing import Callable, List, Optional
 
 try:
     from core.git_errors import humanize_git_error
+    from core.subprocess_utils import hidden_subprocess_kwargs
     from core.tool_paths import tool_file
 except ModuleNotFoundError:
     from stm32_git_release_tool.core.git_errors import humanize_git_error
+    from stm32_git_release_tool.core.subprocess_utils import hidden_subprocess_kwargs
     from stm32_git_release_tool.core.tool_paths import tool_file
 
 
@@ -78,6 +80,7 @@ class GitService:
                 capture_output=True,
                 env=env,
                 timeout=self.timeout_seconds,
+                **hidden_subprocess_kwargs(),
             )
         except subprocess.TimeoutExpired as exc:
             message = f"Git 命令超时：{command_line}"
@@ -128,6 +131,7 @@ class GitService:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 env=env,
+                **hidden_subprocess_kwargs(),
             )
             assert process.stdout is not None
             raw_parts: List[bytes] = []
@@ -181,6 +185,7 @@ class GitService:
                 errors="replace",
                 env=env,
                 timeout=self.timeout_seconds,
+                **hidden_subprocess_kwargs(),
             )
         if completed.returncode != 0:
             raise RuntimeError(humanize_git_error(f"保存 diff 失败，return code: {completed.returncode}"))

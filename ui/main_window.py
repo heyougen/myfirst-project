@@ -28,6 +28,7 @@ try:
     from core.config_manager import ConfigManager
     from core.git_service import GitService
     from core.git_worker import TaskWorker
+    from core.i18n import LANGUAGE_OPTIONS, set_language, tr
     from core.diagnostics import Diagnostics
     from core.protection import ensure_writable_file, hash_password, protect_repository_dirs, protection_enabled, repository_dirs_hidden, show_repository_dirs, verify_password
     from core.project_cleaner import ProjectCleaner
@@ -48,6 +49,7 @@ except ModuleNotFoundError:
     from stm32_git_release_tool.core.config_manager import ConfigManager
     from stm32_git_release_tool.core.git_service import GitService
     from stm32_git_release_tool.core.git_worker import TaskWorker
+    from stm32_git_release_tool.core.i18n import LANGUAGE_OPTIONS, set_language, tr
     from stm32_git_release_tool.core.diagnostics import Diagnostics
     from stm32_git_release_tool.core.protection import ensure_writable_file, hash_password, protect_repository_dirs, protection_enabled, repository_dirs_hidden, show_repository_dirs, verify_password
     from stm32_git_release_tool.core.project_cleaner import ProjectCleaner
@@ -203,13 +205,13 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("FST-GIT发布工具V1.0")
+        self.setWindowTitle(tr("FST-GIT发布工具V1.0"))
         self.resize(1000, 580)
         self.setStyleSheet(MAC_STYLE)
 
         self.thread_pool = QThreadPool.globalInstance()
         self.busy_count = 0
-        self.last_repo_text = "未检测"
+        self.last_repo_text = tr("未检测")
         self.last_status = {"repo": False, "branch": "-", "tag": "-", "dirty": "-", "tags": []}
         self.action_buttons = []
 
@@ -217,6 +219,8 @@ class MainWindow(QMainWindow):
         ensure_tool_dir(self.project_path)
         self.config_manager = ConfigManager(tool_file(self.project_path, "app_config.json"))
         self.config = self.config_manager.load()
+        set_language(self.config.get("language", "zh_CN"))
+        self.setWindowTitle(tr("FST-GIT发布工具V1.0"))
         self.git = GitService(self.project_path, self.log)
         self.log_file_path = self._make_log_file_path()
         protect_repository_dirs(self.project_path, self.log)
@@ -240,12 +244,12 @@ class MainWindow(QMainWindow):
         side.setContentsMargins(10, 10, 10, 10)
         side.setSpacing(5)
 
-        title = QLabel("FST-GIT发布工具V1.0")
-        title.setObjectName("TitleLabel")
-        subtitle = QLabel("Git 版本管理 / 清理 / Release 打包")
-        subtitle.setObjectName("MutedLabel")
+        self.title_label = QLabel(tr("FST-GIT发布工具V1.0"))
+        self.title_label.setObjectName("TitleLabel")
+        self.subtitle_label = QLabel(tr("Git 版本管理 / 清理 / Release 打包"))
+        self.subtitle_label.setObjectName("MutedLabel")
 
-        self.repo_label = QLabel("未检测")
+        self.repo_label = QLabel(tr("未检测"))
         self.repo_label.setObjectName("StatusPill")
         self.path_label = QLabel(self.project_path)
         self.path_label.setWordWrap(True)
@@ -253,27 +257,31 @@ class MainWindow(QMainWindow):
         self.tag_label = QLabel("-")
         self.dirty_label = QLabel("-")
 
-        self.select_path_button = QPushButton("选择工程目录")
-        self.refresh_button = QPushButton("刷新状态")
-        self.init_button = QPushButton("初始化工程")
+        self.select_path_button = QPushButton(tr("选择工程目录"))
+        self.refresh_button = QPushButton(tr("刷新状态"))
+        self.init_button = QPushButton(tr("初始化工程"))
         self.init_button.setObjectName("PrimaryButton")
-        self.return_branch_button = QPushButton("返回分支")
-        self.health_button = QPushButton("检查工程")
-        self.diagnostics_button = QPushButton("导出诊断包")
-        self.backup_button = QPushButton("备份管理")
-        self.toggle_git_dirs_button = QPushButton("显示 Git目录")
+        self.return_branch_button = QPushButton(tr("返回分支"))
+        self.health_button = QPushButton(tr("检查工程"))
+        self.diagnostics_button = QPushButton(tr("导出诊断包"))
+        self.backup_button = QPushButton(tr("备份管理"))
+        self.toggle_git_dirs_button = QPushButton(tr("显示 Git目录"))
 
-        side.addWidget(title)
-        side.addWidget(subtitle)
+        side.addWidget(self.title_label)
+        side.addWidget(self.subtitle_label)
         side.addSpacing(4)
         side.addWidget(self.repo_label)
-        side.addWidget(QLabel("工程路径"))
+        self.path_title_label = QLabel(tr("工程路径"))
+        side.addWidget(self.path_title_label)
         side.addWidget(self.path_label)
-        side.addWidget(QLabel("当前分支"))
+        self.branch_title_label = QLabel(tr("当前分支"))
+        side.addWidget(self.branch_title_label)
         side.addWidget(self.branch_label)
-        side.addWidget(QLabel("当前 tag"))
+        self.tag_title_label = QLabel(tr("当前 tag"))
+        side.addWidget(self.tag_title_label)
         side.addWidget(self.tag_label)
-        side.addWidget(QLabel("工作区状态"))
+        self.dirty_title_label = QLabel(tr("工作区状态"))
+        side.addWidget(self.dirty_title_label)
         side.addWidget(self.dirty_label)
         side.addSpacing(6)
         side.addWidget(self.select_path_button)
@@ -294,29 +302,30 @@ class MainWindow(QMainWindow):
         self.tabs.tabBar().setDrawBase(False)
         self.tabs.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         self.tabs.setMaximumHeight(270)
-        self.tabs.addTab(self._build_version_tab(), "版本发布")
-        self.tabs.addTab(self._build_branch_tab(), "分支管理")
-        self.tabs.addTab(self._build_history_tab(), "历史记录")
-        self.tabs.addTab(self._build_compare_tab(), "版本对比")
-        self.tabs.addTab(self._build_clean_tab(), "工程清理")
-        self.tabs.addTab(self._build_remote_tab(), "远程同步")
-        self.tabs.addTab(self._build_settings_tab(), "设置")
+        self.tabs.addTab(self._build_version_tab(), tr("版本发布"))
+        self.tabs.addTab(self._build_branch_tab(), tr("分支管理"))
+        self.tabs.addTab(self._build_history_tab(), tr("历史记录"))
+        self.tabs.addTab(self._build_compare_tab(), tr("版本对比"))
+        self.tabs.addTab(self._build_clean_tab(), tr("工程清理"))
+        self.tabs.addTab(self._build_remote_tab(), tr("远程同步"))
+        self.tabs.addTab(self._build_settings_tab(), tr("设置"))
+        self._build_language_switch()
 
-        log_box = QGroupBox("执行日志")
-        log_box.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        log_layout = QVBoxLayout(log_box)
+        self.log_box = QGroupBox(tr("执行日志"))
+        self.log_box.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        log_layout = QVBoxLayout(self.log_box)
         log_layout.setContentsMargins(6, 8, 6, 6)
         log_layout.setSpacing(4)
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setMinimumHeight(230)
-        self.log_text.setPlaceholderText("Git 命令、清理、打包、错误输出都会显示在这里。")
-        self.clear_log_button = QPushButton("清空日志")
+        self.log_text.setPlaceholderText(tr("Git 命令、清理、打包、错误输出都会显示在这里。"))
+        self.clear_log_button = QPushButton(tr("清空日志"))
         log_layout.addWidget(self.log_text)
         log_layout.addWidget(self.clear_log_button)
 
         content.addWidget(self.tabs, 0)
-        content.addWidget(log_box, 1)
+        content.addWidget(self.log_box, 1)
 
         root.addWidget(sidebar)
         root.addLayout(content, 1)
@@ -344,32 +353,35 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(6)
-        form_box = QGroupBox("版本信息")
-        form = QFormLayout(form_box)
+        self.version_info_box = QGroupBox(tr("版本信息"))
+        form = QFormLayout(self.version_info_box)
         form.setContentsMargins(6, 6, 6, 6)
         form.setHorizontalSpacing(8)
         form.setVerticalSpacing(4)
         self.version_input = QLineEdit()
-        self.version_input.setPlaceholderText("例如 v1.2")
+        self.version_input.setPlaceholderText(tr("例如 v1.2"))
         self.desc_input = QLineEdit()
-        self.desc_input.setPlaceholderText("修改说明，例如 修复串口通信问题")
+        self.desc_input.setPlaceholderText(tr("修改说明，例如 修复串口通信问题"))
         self.tag_combo = QComboBox()
-        form.addRow("版本号", self.version_input)
-        form.addRow("修改说明", self.desc_input)
-        form.addRow("选择 tag", self.tag_combo)
+        self.version_title_label = QLabel(tr("版本号"))
+        self.desc_title_label = QLabel(tr("修改说明"))
+        self.tag_select_title_label = QLabel(tr("选择 tag"))
+        form.addRow(self.version_title_label, self.version_input)
+        form.addRow(self.desc_title_label, self.desc_input)
+        form.addRow(self.tag_select_title_label, self.tag_combo)
 
-        button_box = QGroupBox("版本操作")
-        buttons = QGridLayout(button_box)
+        self.version_actions_box = QGroupBox(tr("版本操作"))
+        buttons = QGridLayout(self.version_actions_box)
         buttons.setContentsMargins(6, 6, 6, 6)
         buttons.setHorizontalSpacing(6)
         buttons.setVerticalSpacing(4)
-        self.commit_button = QPushButton("提交版本")
+        self.commit_button = QPushButton(tr("提交版本"))
         self.commit_button.setObjectName("PrimaryButton")
-        self.release_button = QPushButton("发布 Release")
+        self.release_button = QPushButton(tr("发布 Release"))
         self.release_button.setObjectName("PrimaryButton")
-        self.package_button = QPushButton("一键打包")
-        self.checkout_tag_button = QPushButton("查看历史版本")
-        self.reset_tag_button = QPushButton("强制回退到 tag")
+        self.package_button = QPushButton(tr("一键打包"))
+        self.checkout_tag_button = QPushButton(tr("查看历史版本"))
+        self.reset_tag_button = QPushButton(tr("强制回退到 tag"))
         self.reset_tag_button.setObjectName("DangerButton")
         for index, button in enumerate(
             [
@@ -382,8 +394,8 @@ class MainWindow(QMainWindow):
         ):
             buttons.addWidget(button, index // 3, index % 3)
 
-        layout.addWidget(form_box)
-        layout.addWidget(button_box)
+        layout.addWidget(self.version_info_box)
+        layout.addWidget(self.version_actions_box)
         self.commit_button.clicked.connect(self.commit_version)
         self.release_button.clicked.connect(self.release_version)
         self.package_button.clicked.connect(self.package_only)
@@ -404,12 +416,13 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(2, 2, 2, 2)
-        box, box_layout = self._card("分支操作")
-        self.open_branch_button = QPushButton("打开分支管理")
+        self.branch_box, box_layout = self._card(tr("分支操作"))
+        self.open_branch_button = QPushButton(tr("打开分支管理"))
         self.open_branch_button.setObjectName("PrimaryButton")
-        box_layout.addWidget(QLabel("支持创建、切换、删除、强制删除和合并分支。"))
+        self.branch_desc_label = QLabel(tr("支持创建、切换、删除、强制删除和合并分支。"))
+        box_layout.addWidget(self.branch_desc_label)
         box_layout.addWidget(self.open_branch_button)
-        layout.addWidget(box)
+        layout.addWidget(self.branch_box)
         self.open_branch_button.clicked.connect(self.open_branch_dialog)
         self.action_buttons.append(self.open_branch_button)
         return widget
@@ -418,12 +431,13 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(2, 2, 2, 2)
-        box, box_layout = self._card("历史、Diff、回滚")
-        self.open_history_button = QPushButton("打开提交历史")
+        self.history_box, box_layout = self._card(tr("历史、Diff、回滚"))
+        self.open_history_button = QPushButton(tr("打开提交历史"))
         self.open_history_button.setObjectName("PrimaryButton")
-        box_layout.addWidget(QLabel("查看 commit、diff，支持安全 revert 和强制 reset。"))
+        self.history_desc_label = QLabel(tr("查看 commit、diff，支持安全 revert 和强制 reset。"))
+        box_layout.addWidget(self.history_desc_label)
         box_layout.addWidget(self.open_history_button)
-        layout.addWidget(box)
+        layout.addWidget(self.history_box)
         self.open_history_button.clicked.connect(self.open_history_dialog)
         self.action_buttons.append(self.open_history_button)
         return widget
@@ -432,12 +446,13 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(2, 2, 2, 2)
-        box, box_layout = self._card("版本之间不同点")
-        self.open_compare_button = QPushButton("打开版本对比")
+        self.compare_box, box_layout = self._card(tr("版本之间不同点"))
+        self.open_compare_button = QPushButton(tr("打开版本对比"))
         self.open_compare_button.setObjectName("PrimaryButton")
-        box_layout.addWidget(QLabel("选择两个 tag 或 HEAD，查看文件变更统计、提交差异和完整 diff。"))
+        self.compare_desc_label = QLabel(tr("选择两个 tag 或 HEAD，查看文件变更统计、提交差异和完整 diff。"))
+        box_layout.addWidget(self.compare_desc_label)
         box_layout.addWidget(self.open_compare_button)
-        layout.addWidget(box)
+        layout.addWidget(self.compare_box)
         self.open_compare_button.clicked.connect(self.open_compare_dialog)
         self.action_buttons.append(self.open_compare_button)
         return widget
@@ -446,9 +461,9 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(2, 2, 2, 2)
-        box, box_layout = self._card("STM32 工程清理")
-        self.clean_scan_button = QPushButton("扫描可清理文件")
-        self.clean_button = QPushButton("一键清理编译产物")
+        self.clean_box, box_layout = self._card(tr("STM32 工程清理"))
+        self.clean_scan_button = QPushButton(tr("扫描可清理文件"))
+        self.clean_button = QPushButton(tr("一键清理编译产物"))
         self.clean_button.setObjectName("DangerButton")
         self.clean_preview = QTextEdit()
         self.clean_preview.setReadOnly(True)
@@ -457,7 +472,7 @@ class MainWindow(QMainWindow):
         box_layout.addWidget(self.clean_scan_button)
         box_layout.addWidget(self.clean_button)
         box_layout.addWidget(self.clean_preview)
-        layout.addWidget(box)
+        layout.addWidget(self.clean_box)
         self.clean_scan_button.clicked.connect(self.scan_clean_targets)
         self.clean_button.clicked.connect(self.clean_project)
         self.action_buttons.extend([self.clean_scan_button, self.clean_button])
@@ -467,13 +482,13 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(2, 2, 2, 2)
-        box, box_layout = self._card("远程同步")
+        self.remote_box, box_layout = self._card(tr("远程同步"))
         self.pull_button = QPushButton("Pull")
         self.push_button = QPushButton("Push")
         self.push_tags_button = QPushButton("Push + Tags")
-        self.set_remote_button = QPushButton("应用远程地址")
-        self.verify_remote_button = QPushButton("验证远程")
-        self.clone_remote_button = QPushButton("从远程克隆")
+        self.set_remote_button = QPushButton(tr("应用远程地址"))
+        self.verify_remote_button = QPushButton(tr("验证远程"))
+        self.clone_remote_button = QPushButton(tr("从远程克隆"))
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(6)
@@ -488,8 +503,9 @@ class MainWindow(QMainWindow):
             row.addWidget(button)
         row.addStretch()
         box_layout.addLayout(row)
-        box_layout.addWidget(QLabel("远程地址可在设置中填写。Git 凭据不会弹出阻塞窗口，失败信息会写入日志。"))
-        layout.addWidget(box)
+        self.remote_desc_label = QLabel(tr("远程地址可在设置中填写。Git 凭据不会弹出阻塞窗口，失败信息会写入日志。"))
+        box_layout.addWidget(self.remote_desc_label)
+        layout.addWidget(self.remote_box)
         self.pull_button.clicked.connect(self.pull_remote)
         self.push_button.clicked.connect(lambda: self.push_remote(False))
         self.push_tags_button.clicked.connect(lambda: self.push_remote(True))
@@ -510,12 +526,13 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(2, 2, 2, 2)
-        box, box_layout = self._card("发布配置")
-        self.settings_button = QPushButton("打开设置")
+        self.settings_box, box_layout = self._card(tr("发布配置"))
+        self.settings_button = QPushButton(tr("打开设置"))
         self.settings_button.setObjectName("PrimaryButton")
-        self.cleanup_history_cache_button = QPushButton("清理历史缓存")
+        self.cleanup_history_cache_button = QPushButton(tr("清理历史缓存"))
         self.cleanup_history_cache_button.setObjectName("DangerButton")
         self.help_button = make_help_box("FST-GIT发布工具V1.0 操作说明", self._main_help_steps())
+
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(6)
@@ -523,13 +540,31 @@ class MainWindow(QMainWindow):
         row.addWidget(self.cleanup_history_cache_button)
         row.addWidget(self.help_button)
         row.addStretch()
-        box_layout.addWidget(QLabel("配置固件目录、发布目录、源码目录、排除规则和远程地址。"))
+        self.settings_desc_label = QLabel(tr("配置固件目录、发布目录、源码目录、排除规则和远程地址。"))
+        box_layout.addWidget(self.settings_desc_label)
         box_layout.addLayout(row)
-        layout.addWidget(box)
+        layout.addWidget(self.settings_box)
         self.settings_button.clicked.connect(self.open_settings)
         self.cleanup_history_cache_button.clicked.connect(self.cleanup_history_cache)
         self.action_buttons.extend([self.settings_button, self.cleanup_history_cache_button, self.help_button])
         return widget
+
+    def _build_language_switch(self):
+        self.language_switch = QWidget()
+        layout = QHBoxLayout(self.language_switch)
+        layout.setContentsMargins(6, 0, 2, 0)
+        layout.setSpacing(4)
+        self.language_combo_main = QComboBox()
+        self.language_combo_main.setToolTip(tr("界面语言"))
+        self.language_combo_main.setMinimumWidth(92)
+        for code, label in LANGUAGE_OPTIONS:
+            self.language_combo_main.addItem(label, code)
+        index = self.language_combo_main.findData(self.config.get("language", "zh_CN"))
+        if index >= 0:
+            self.language_combo_main.setCurrentIndex(index)
+        layout.addWidget(self.language_combo_main)
+        self.tabs.setCornerWidget(self.language_switch)
+        self.language_combo_main.currentIndexChanged.connect(self.apply_language)
 
     def _main_help_steps(self):
         return [
@@ -562,7 +597,8 @@ class MainWindow(QMainWindow):
         ]
 
     def log(self, message):
-        self.log_signal.emit(str(message))
+        message = tr(str(message))
+        self.log_signal.emit(message)
         try:
             os.makedirs(os.path.dirname(self.log_file_path), exist_ok=True)
             with open(self.log_file_path, "a", encoding="utf-8") as file:
@@ -585,10 +621,11 @@ class MainWindow(QMainWindow):
         for button in self.action_buttons + [self.init_button, self.refresh_button, self.select_path_button, self.health_button, self.diagnostics_button, self.backup_button, self.toggle_git_dirs_button]:
             button.setEnabled(not is_busy)
         self._update_return_branch_button()
-        self.repo_label.setText("正在执行..." if is_busy else self.last_repo_text)
+        self.repo_label.setText(("Running..." if self.config.get("language") == "en_US" else "正在执行...") if is_busy else self.last_repo_text)
 
     def select_project_path(self):
-        path = QFileDialog.getExistingDirectory(self, "选择 STM32 工程目录", self.project_path)
+        dialog_title = "Select STM32 Project Folder" if self.config.get("language") == "en_US" else "选择 STM32 工程目录"
+        path = QFileDialog.getExistingDirectory(self, dialog_title, self.project_path)
         if not path:
             return
         self.project_path = path
@@ -598,8 +635,9 @@ class MainWindow(QMainWindow):
         protect_repository_dirs(path, self.log)
         self.config_manager = ConfigManager(tool_file(path, "app_config.json"))
         self.config = self.config_manager.load()
+        set_language(self.config.get("language", "zh_CN"))
         self.log_file_path = self._make_log_file_path()
-        self.log(f"[工程] 已选择 {path}")
+        self.log(f"[Project] Selected {path}" if self.config.get("language") == "en_US" else f"[工程] 已选择 {path}")
         self.check_repo_guard()
         self.refresh_status()
 
@@ -625,7 +663,7 @@ class MainWindow(QMainWindow):
                 "repo": True,
                 "branch": self.git.current_branch(),
                 "tag": self.git.current_tag() or "-",
-                "dirty": "有有效工程改动" if self.git.meaningful_changed_files() else "干净",
+                "dirty": ("Meaningful changes" if self.config.get("language") == "en_US" else "有有效工程改动") if self.git.meaningful_changed_files() else ("Clean" if self.config.get("language") == "en_US" else "干净"),
                 "tags": self.git.list_tags(),
             }
 
@@ -636,7 +674,7 @@ class MainWindow(QMainWindow):
 
     def _apply_status(self, status):
         self.last_status = status
-        self.last_repo_text = "Git 仓库已就绪" if status["repo"] else "当前目录不是 Git 仓库"
+        self.last_repo_text = "Git repository ready" if status["repo"] else tr("当前目录不是 Git 仓库")
         self.repo_label.setText(self.last_repo_text)
         self.branch_label.setText(status["branch"])
         self.tag_label.setText(status["tag"])
@@ -662,13 +700,13 @@ class MainWindow(QMainWindow):
 
     def _update_git_dirs_button(self):
         if repository_dirs_hidden(self.project_path):
-            self.toggle_git_dirs_button.setText("显示 Git目录")
+            self.toggle_git_dirs_button.setText(tr("显示 Git目录"))
         else:
-            self.toggle_git_dirs_button.setText("隐藏 Git目录")
+            self.toggle_git_dirs_button.setText(tr("隐藏 Git目录"))
 
     def toggle_git_dirs_visibility(self):
         if not os.path.isdir(os.path.join(self.project_path, ".git")):
-            QMessageBox.information(self, "未找到 Git 目录", "当前工程目录下没有 .git。")
+            QMessageBox.information(self, tr("未找到 Git 目录"), tr("当前工程目录下没有 .git。"))
             return
         if repository_dirs_hidden(self.project_path):
             show_repository_dirs(self.project_path, self.log)
@@ -681,18 +719,18 @@ class MainWindow(QMainWindow):
     def _validate_version(self):
         version = normalize_version(self.version_input.text())
         if not version:
-            QMessageBox.warning(self, "缺少版本号", "请输入版本号，例如 v1.2")
+            QMessageBox.warning(self, tr("缺少版本号"), tr("请输入版本号，例如 v1.2"))
             return ""
         self.version_input.setText(version)
         if not is_valid_version(version):
-            QMessageBox.warning(self, "版本号格式不规范", version_help())
+            QMessageBox.warning(self, "Version format" if self.config.get("language") == "en_US" else "版本号格式不规范", version_help())
             return ""
         return version
 
     def _require_repository(self) -> bool:
         if self.git.is_repository():
             return True
-        QMessageBox.information(self, "当前目录不是 Git 仓库", "请先选择正确的工程目录，或点击“初始化工程”。")
+        QMessageBox.information(self, tr("当前目录不是 Git 仓库"), tr("当前目录不是 Git 仓库。请先选择正确工程目录，或点击“初始化工程”。"))
         return False
 
     def _merge_gitignore(self):
@@ -867,23 +905,23 @@ class MainWindow(QMainWindow):
 
         branch, ok = QInputDialog.getText(
             self,
-            f"创建工作分支后{action_name}",
-            "当前处于历史查看模式 detached HEAD，不能直接提交或发布。\n"
+            tr("创建工作分支后") + tr(action_name),
+            tr("当前处于历史查看模式 detached HEAD，不能直接提交或发布。\n"
             "工具将基于当前代码位置创建一个正常分支，然后自动继续刚才的操作。\n\n"
-            "请输入新分支名：",
+            "请输入新分支名："),
             text=branch_name,
         )
         branch = branch.strip()
         if not ok:
             return
         if not branch:
-            QMessageBox.warning(self, "分支名不能为空", "请输入一个分支名。")
+            QMessageBox.warning(self, tr("分支名不能为空"), tr("请输入一个分支名。"))
             return
         if any(char.isspace() for char in branch):
-            QMessageBox.warning(self, "分支名不合法", "分支名不能包含空白字符。")
+            QMessageBox.warning(self, tr("分支名不合法"), tr("分支名不能包含空白字符。"))
             return
         if branch in branches:
-            QMessageBox.warning(self, "分支已存在", f"分支 {branch} 已存在，请换一个新分支名。")
+            QMessageBox.warning(self, tr("分支已存在"), tr("分支 {branch} 已存在，请换一个新分支名。", branch=branch))
             return
 
         self.run_async(
@@ -901,8 +939,8 @@ class MainWindow(QMainWindow):
                 preferred = next((branch for branch in ["master", "main", "dev"] if branch in branches), branches[0])
                 branch, ok = QInputDialog.getItem(
                     self,
-                    "返回分支后发布",
-                    "当前处于历史查看模式，正式发布需要先回到正常分支。\n选择要返回的分支：",
+                    tr("返回分支后发布"),
+                    tr("当前处于历史查看模式，正式发布需要先回到正常分支。\n选择要返回的分支："),
                     branches,
                     branches.index(preferred),
                     False,
@@ -913,13 +951,13 @@ class MainWindow(QMainWindow):
 
             branch, ok = QInputDialog.getText(
                 self,
-                "创建发布分支",
-                "当前没有任何正常分支，不能直接发布 Release。\n请输入要基于当前位置创建的分支名：",
+                tr("创建发布分支"),
+                tr("当前没有任何正常分支，不能直接发布 Release。\n请输入要基于当前位置创建的分支名："),
                 text="master",
             )
             branch = branch.strip()
             if branch and any(char.isspace() for char in branch):
-                QMessageBox.warning(self, "分支名不合法", "分支名不能包含空白字符。")
+                QMessageBox.warning(self, tr("分支名不合法"), tr("分支名不能包含空白字符。"))
                 return
             if ok and branch:
                 self.run_async(
@@ -927,8 +965,8 @@ class MainWindow(QMainWindow):
                     refresh=True,
                     on_finished=lambda _: QMessageBox.information(
                         self,
-                        "已创建发布分支",
-                        f"已创建并切换到分支：{branch}\n\n请先提交版本，再点击“发布 Release”。",
+                        tr("已创建发布分支"),
+                        tr("已创建并切换到分支：{branch}\n\n请先提交版本，再点击“发布 Release”。", branch=branch),
                     ),
                 )
 
@@ -969,7 +1007,7 @@ class MainWindow(QMainWindow):
         preview = "\n".join(paths[:40])
         if len(paths) > 40:
             preview += f"\n... 另有 {len(paths) - 40} 个文件"
-        return QMessageBox.question(self, title, f"{intro}\n\n{preview}") == QMessageBox.Yes
+        return QMessageBox.question(self, tr(title), f"{tr(intro)}\n\n{preview}") == QMessageBox.Yes
 
     def _check_dirty_then(self, action, dirty_text, block_dirty=False):
         def after_check(changes):
@@ -977,13 +1015,13 @@ class MainWindow(QMainWindow):
                 self.log("[有效工程变更文件]")
                 for item in changes:
                     self.log(f"  {item}")
-                QMessageBox.warning(self, "存在未提交修改", dirty_text)
+                QMessageBox.warning(self, tr("存在未提交修改"), tr(dirty_text))
                 return
             if changes:
                 self.log("[有效工程变更文件]")
                 for item in changes:
                     self.log(f"  {item}")
-                reply = QMessageBox.question(self, "存在未提交修改", dirty_text)
+                reply = QMessageBox.question(self, tr("存在未提交修改"), tr(dirty_text))
                 if reply != QMessageBox.Yes:
                     return
             self.run_async(action, refresh=True)
@@ -995,7 +1033,7 @@ class MainWindow(QMainWindow):
             return
         tag = self.tag_combo.currentText().strip()
         if not tag:
-            QMessageBox.information(self, "没有 tag", "当前没有可选择的 tag。")
+            QMessageBox.information(self, tr("没有 tag"), tr("当前没有可选择的 tag。"))
             return
         self._check_dirty_then(
             lambda: self.git.checkout_force(tag),
@@ -1008,13 +1046,13 @@ class MainWindow(QMainWindow):
             return
         tag = self.tag_combo.currentText().strip()
         if not tag:
-            QMessageBox.information(self, "没有 tag", "当前没有可选择的 tag。")
+            QMessageBox.information(self, tr("没有 tag"), tr("当前没有可选择的 tag。"))
             return
         current = self.git.current_tag() or self.git.current_branch()
         if QMessageBox.question(
             self,
-            "危险操作",
-            f"确认强制回退？\n\n当前位置：{current}\n目标版本：{tag}\n\n工具会先创建 backup 分支，回退错误时可从“备份管理”恢复。",
+            tr("危险操作"),
+            tr("确认强制回退？\n\n当前位置：{current}\n目标版本：{tag}\n\n工具会先创建 backup 分支，回退错误时可从“备份管理”恢复。", current=current, tag=tag),
         ) != QMessageBox.Yes:
             return
         if not self.verify_dangerous_operation("强制回退到 tag"):
@@ -1027,7 +1065,7 @@ class MainWindow(QMainWindow):
 
     def scan_clean_targets(self):
         def apply_targets(targets):
-            self.clean_preview.setPlainText("\n".join(targets) if targets else "没有发现可清理项")
+            self.clean_preview.setPlainText("\n".join(targets) if targets else tr("没有发现可清理项"))
 
         cleaner = ProjectCleaner(self.project_path, self.log)
         self.run_async(cleaner.scan, on_finished=apply_targets)
@@ -1037,10 +1075,10 @@ class MainWindow(QMainWindow):
 
         def confirm_and_clean(targets):
             if not targets:
-                self.clean_preview.setPlainText("没有发现可清理项")
+                self.clean_preview.setPlainText(tr("没有发现可清理项"))
                 return
             self.clean_preview.setPlainText("\n".join(targets))
-            if QMessageBox.question(self, "确认清理", f"确认删除 {len(targets)} 个编译产物？") != QMessageBox.Yes:
+            if QMessageBox.question(self, tr("确认清理"), tr("确认删除 {count} 个编译产物？", count=len(targets))) != QMessageBox.Yes:
                 return
             self.run_async(cleaner.clean, refresh=False)
 
@@ -1051,7 +1089,7 @@ class MainWindow(QMainWindow):
             return
         remote = self.config.get("remote", "").strip()
         if not remote:
-            QMessageBox.information(self, "未配置远程地址", "请先在设置中填写远程地址。")
+            QMessageBox.information(self, tr("未配置远程地址"), tr("请先在设置中填写远程地址。"))
             return
 
         def task():
@@ -1069,22 +1107,22 @@ class MainWindow(QMainWindow):
     def verify_remote(self):
         remote = self.config.get("remote", "").strip()
         if not remote:
-            QMessageBox.information(self, "未配置远程地址", "请先在设置中填写远程地址。")
+            QMessageBox.information(self, tr("未配置远程地址"), tr("请先在设置中填写远程地址。"))
             return
-        self.run_async(lambda: self.git.run(["ls-remote", remote], check=True), on_finished=lambda _: QMessageBox.information(self, "验证通过", "远程仓库地址可访问。"))
+        self.run_async(lambda: self.git.run(["ls-remote", remote], check=True), on_finished=lambda _: QMessageBox.information(self, tr("验证通过"), tr("远程仓库地址可访问。")))
 
     def clone_remote(self):
         remote = self.config.get("remote", "").strip()
         if not remote:
-            QMessageBox.information(self, "未配置远程地址", "请先在设置中填写远程地址。")
+            QMessageBox.information(self, tr("未配置远程地址"), tr("请先在设置中填写远程地址。"))
             return
-        parent = QFileDialog.getExistingDirectory(self, "选择克隆目标父目录", os.path.dirname(self.project_path))
+        parent = QFileDialog.getExistingDirectory(self, tr("选择克隆目标父目录"), os.path.dirname(self.project_path))
         if not parent:
             return
-        name, ok = QInputDialog.getText(self, "目标目录名", "留空则使用仓库名：")
+        name, ok = QInputDialog.getText(self, tr("目标目录名"), tr("留空则使用仓库名："))
         if not ok:
             return
-        self.run_async(lambda: Recovery.clone(remote, parent, name), on_finished=lambda path: QMessageBox.information(self, "克隆完成", path))
+        self.run_async(lambda: Recovery.clone(remote, parent, name), on_finished=lambda path: QMessageBox.information(self, tr("克隆完成"), path))
 
     def pull_remote(self):
         if not self._require_repository():
@@ -1101,11 +1139,11 @@ class MainWindow(QMainWindow):
             return
         if QMessageBox.question(
             self,
-            "确认清理历史缓存",
-            "该操作会清理 Git reflog 和无引用对象，减小仓库缓存体积。\n\n"
+            tr("确认清理历史缓存"),
+            tr("该操作会清理 Git reflog 和无引用对象，减小仓库缓存体积。\n\n"
             "不会删除当前分支、tag 或正常提交历史。\n"
             "已经没有分支或 tag 引用的临时对象可能会被永久清理。\n\n"
-            "确认继续？",
+            "确认继续？"),
         ) != QMessageBox.Yes:
             return
         self.run_async(self.git.cleanup_history_cache, refresh=True)
@@ -1122,12 +1160,12 @@ class MainWindow(QMainWindow):
     def ensure_protection_password(self):
         if protection_enabled(self.config):
             return True
-        password, ok = QInputDialog.getText(self, "设置保护密码", "首次危险操作需要设置保护密码：", QLineEdit.Password)
+        password, ok = QInputDialog.getText(self, tr("设置保护密码"), tr("首次危险操作需要设置保护密码："), QLineEdit.Password)
         if not ok or not password:
             return False
-        confirm, ok = QInputDialog.getText(self, "确认保护密码", "再次输入保护密码：", QLineEdit.Password)
+        confirm, ok = QInputDialog.getText(self, tr("确认保护密码"), tr("再次输入保护密码："), QLineEdit.Password)
         if not ok or password != confirm:
-            QMessageBox.warning(self, "密码不一致", "两次输入的保护密码不一致。")
+            QMessageBox.warning(self, tr("密码不一致"), tr("两次输入的保护密码不一致。"))
             return False
         self.config.update(hash_password(password))
         self.config["protection_enabled"] = True
@@ -1137,13 +1175,13 @@ class MainWindow(QMainWindow):
     def verify_dangerous_operation(self, action_name):
         if not self.ensure_protection_password():
             return False
-        password, ok = QInputDialog.getText(self, "危险操作确认", f"{action_name}\n请输入保护密码：", QLineEdit.Password)
+        password, ok = QInputDialog.getText(self, tr("危险操作确认"), tr("{action}\n请输入保护密码：", action=tr(action_name)), QLineEdit.Password)
         if not ok or not verify_password(password, self.config):
-            QMessageBox.warning(self, "密码错误", "保护密码不正确。")
+            QMessageBox.warning(self, tr("密码错误"), tr("保护密码不正确。"))
             return False
-        token, ok = QInputDialog.getText(self, "二次确认", "请输入 RESET 确认执行：")
+        token, ok = QInputDialog.getText(self, tr("二次确认"), tr("请输入 RESET 确认执行："))
         if not ok or token != "RESET":
-            QMessageBox.information(self, "已取消", "未输入 RESET，操作已取消。")
+            QMessageBox.information(self, tr("已取消"), tr("未输入 RESET，操作已取消。"))
             return False
         return True
 
@@ -1156,7 +1194,7 @@ class MainWindow(QMainWindow):
             message = "检测到 .git 仓库信息丢失。\n\n建议优先从远程仓库重新 clone 恢复。"
             if remote:
                 message += f"\n\n远程仓库：{remote}"
-            QMessageBox.warning(self, "Git 仓库丢失", message)
+            QMessageBox.warning(self, tr("Git 仓库丢失"), tr(message))
             self.log("[警告] .stm32_git_tool/.git_guard.json 存在，但 .git 目录不存在。")
         elif status == "unguarded":
             guard.save(self.config.get("remote", ""))
@@ -1171,19 +1209,19 @@ class MainWindow(QMainWindow):
             if not branches:
                 branch, ok = QInputDialog.getText(
                     self,
-                    "创建恢复分支",
-                    "当前没有可返回的分支。\n请输入要基于当前位置创建的分支名：",
+                    tr("创建恢复分支"),
+                    tr("当前没有可返回的分支。\n请输入要基于当前位置创建的分支名："),
                     text="master",
                 )
                 branch = branch.strip()
                 if branch and any(char.isspace() for char in branch):
-                    QMessageBox.warning(self, "分支名不合法", "分支名不能包含空白字符。")
+                    QMessageBox.warning(self, tr("分支名不合法"), tr("分支名不能包含空白字符。"))
                     return
                 if ok and branch:
                     self.run_async(lambda: self.git.create_and_checkout_branch(branch), refresh=True)
                 return
             preferred = next((branch for branch in ["master", "main", "dev"] if branch in branches), branches[0])
-            branch, ok = QInputDialog.getItem(self, "返回分支", "选择要返回的分支：", branches, branches.index(preferred), False)
+            branch, ok = QInputDialog.getItem(self, tr("返回分支"), tr("选择要返回的分支："), branches, branches.index(preferred), False)
             if ok and branch:
                 self.run_async(lambda: self.git.checkout_branch(branch), refresh=True)
 
@@ -1198,14 +1236,87 @@ class MainWindow(QMainWindow):
 
         def done(path):
             self.log(f"[诊断包] {path}")
-            QMessageBox.information(self, "诊断包已导出", path)
+            QMessageBox.information(self, tr("诊断包已导出"), path)
 
         self.run_async(lambda: diagnostics.export_diagnostics(self.log_file_path), on_finished=done)
 
     def _set_log_text(self, text):
-        self.log_text.setPlainText(text)
+        self.log_text.setPlainText(tr(text))
         scrollbar = self.log_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+
+    def _retranslate_ui(self):
+        self.setWindowTitle(tr("FST-GIT发布工具V1.0"))
+        self.title_label.setText(tr("FST-GIT发布工具V1.0"))
+        self.subtitle_label.setText(tr("Git 版本管理 / 清理 / Release 打包"))
+        self.repo_label.setText(tr(self.last_repo_text))
+        self.select_path_button.setText(tr("选择工程目录"))
+        self.refresh_button.setText(tr("刷新状态"))
+        self.init_button.setText(tr("初始化工程"))
+        self.return_branch_button.setText(tr("返回分支"))
+        self.health_button.setText(tr("检查工程"))
+        self.diagnostics_button.setText(tr("导出诊断包"))
+        self.backup_button.setText(tr("备份管理"))
+        self.path_title_label.setText(tr("工程路径"))
+        self.branch_title_label.setText(tr("当前分支"))
+        self.tag_title_label.setText(tr("当前 tag"))
+        self.dirty_title_label.setText(tr("工作区状态"))
+        self.tabs.setTabText(0, tr("版本发布"))
+        self.tabs.setTabText(1, tr("分支管理"))
+        self.tabs.setTabText(2, tr("历史记录"))
+        self.tabs.setTabText(3, tr("版本对比"))
+        self.tabs.setTabText(4, tr("工程清理"))
+        self.tabs.setTabText(5, tr("远程同步"))
+        self.tabs.setTabText(6, tr("设置"))
+        self.log_text.setPlaceholderText(tr("Git 命令、清理、打包、错误输出都会显示在这里。"))
+        self.log_box.setTitle(tr("执行日志"))
+        self.clear_log_button.setText(tr("清空日志"))
+        self.version_info_box.setTitle(tr("版本信息"))
+        self.version_title_label.setText(tr("版本号"))
+        self.desc_title_label.setText(tr("修改说明"))
+        self.tag_select_title_label.setText(tr("选择 tag"))
+        self.version_actions_box.setTitle(tr("版本操作"))
+        self.version_input.setPlaceholderText(tr("例如 v1.2"))
+        self.desc_input.setPlaceholderText(tr("修改说明，例如 修复串口通信问题"))
+        self.commit_button.setText(tr("提交版本"))
+        self.release_button.setText(tr("发布 Release"))
+        self.package_button.setText(tr("一键打包"))
+        self.checkout_tag_button.setText(tr("查看历史版本"))
+        self.reset_tag_button.setText(tr("强制回退到 tag"))
+        self.branch_box.setTitle(tr("分支操作"))
+        self.branch_desc_label.setText(tr("支持创建、切换、删除、强制删除和合并分支。"))
+        self.open_branch_button.setText(tr("打开分支管理"))
+        self.history_box.setTitle(tr("历史、Diff、回滚"))
+        self.history_desc_label.setText(tr("查看 commit、diff，支持安全 revert 和强制 reset。"))
+        self.open_history_button.setText(tr("打开提交历史"))
+        self.compare_box.setTitle(tr("版本之间不同点"))
+        self.compare_desc_label.setText(tr("选择两个 tag 或 HEAD，查看文件变更统计、提交差异和完整 diff。"))
+        self.open_compare_button.setText(tr("打开版本对比"))
+        self.clean_box.setTitle(tr("STM32 工程清理"))
+        self.clean_scan_button.setText(tr("扫描可清理文件"))
+        self.clean_button.setText(tr("一键清理编译产物"))
+        self.remote_box.setTitle(tr("远程同步"))
+        self.set_remote_button.setText(tr("应用远程地址"))
+        self.verify_remote_button.setText(tr("验证远程"))
+        self.clone_remote_button.setText(tr("从远程克隆"))
+        self.remote_desc_label.setText(tr("远程地址可在设置中填写。Git 凭据不会弹出阻塞窗口，失败信息会写入日志。"))
+        self.settings_box.setTitle(tr("发布配置"))
+        self.settings_button.setText(tr("打开设置"))
+        self.cleanup_history_cache_button.setText(tr("清理历史缓存"))
+        self.settings_desc_label.setText(tr("配置固件目录、发布目录、源码目录、排除规则和远程地址。"))
+        self.language_combo_main.setToolTip(tr("界面语言"))
+        self.help_button.setText(tr("操作说明"))
+        self.help_button.setToolTip(tr("FST-GIT发布工具V1.0 操作说明"))
+        self._update_git_dirs_button()
+
+    def apply_language(self, _index=None):
+        language = self.language_combo_main.currentData()
+        self.config["language"] = language
+        set_language(language)
+        self.config_manager.save(self.config)
+        self._retranslate_ui()
+        self.refresh_status()
+        self.log("[Settings] Language updated" if language == "en_US" else "[设置] 已更新界面语言")
 
     def open_branch_dialog(self):
         if not self._require_repository():
@@ -1237,8 +1348,17 @@ class MainWindow(QMainWindow):
         dialog = SettingsDialog(self.config, self)
         if dialog.exec_():
             self.config = dialog.get_config()
+            set_language(self.config.get("language", "zh_CN"))
+            index = self.language_combo_main.findData(self.config.get("language", "zh_CN"))
+            if index >= 0:
+                self.language_combo_main.blockSignals(True)
+                self.language_combo_main.setCurrentIndex(index)
+                self.language_combo_main.blockSignals(False)
             self.config_manager.save(self.config)
-            self.log("[设置] 已保存")
+            self._retranslate_ui()
+            self.refresh_status()
+            self.log("[Settings] Saved" if self.config.get("language") == "en_US" else "[设置] 已保存")
+            QMessageBox.information(self, tr("设置"), tr("设置已保存。"))
 
     def closeEvent(self, event):
         self.thread_pool.waitForDone(1000)

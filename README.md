@@ -1,110 +1,204 @@
 # STM32 Git Release Tool
 
-Windows desktop tool for STM32 / Keil / CubeMX projects.
+A compact Windows desktop application for managing Git versions and release
+packages in STM32, Keil MDK, and STM32CubeMX projects.
 
-It wraps common Git and release actions into a GUI so embedded developers can:
-
-- initialize a repository for an STM32 project
-- filter build artifacts before commit
-- create version commits and tags
-- generate release packages
-- inspect history and code diffs
-- compare versions
-- manage branches and recovery branches
-
-## Scope
-
-This is not a general-purpose Git client.
-
-It is designed for Windows-based STM32 workflows, especially projects built with:
-
-- Keil MDK
-- STM32CubeMX-generated code
-- local release packaging based on `.bin` / `.hex` artifacts
+It provides guided workflows for commits, tags, release archives, branches,
+history, code comparison, recovery, cleanup, and remote synchronization.
+The interface can switch between Simplified Chinese and English at runtime.
 
 ## Features
 
-- project selection and Git status overview
-- repository initialization with STM32-oriented `.gitignore`
-- `Commit Version` workflow with file confirmation
-- `Release` workflow with tag creation and zip packaging
-- branch management and backup branch recovery
-- history view, code diff view, full patch export
-- version comparison with clear base/target direction
-- build artifact cleanup for `Debug/`, `Objects/`, `Listings/`, `*.map`, `*.axf`, `*.o`, `*.d`
-- diagnostics export for logs, config, ignore rules, and repository checks
+- Initialize an STM32 project as a Git repository with suitable ignore rules.
+- Commit meaningful project files while filtering build artifacts and caches.
+- Create release tags and ZIP packages containing source and firmware files.
+- Inspect commit history and source-oriented diffs.
+- Compare two tags or `HEAD` in a clear base-to-target direction.
+- Create, switch, merge, and delete branches.
+- Create recovery branches before destructive reset operations.
+- Clean Keil build artifacts such as `Debug/`, `Objects/`, `Listings/`,
+  `*.map`, `*.axf`, `*.o`, and `*.d`.
+- Pull, push, push tags, verify remotes, and clone repositories.
+- Export diagnostics for troubleshooting.
+- Switch between Simplified Chinese and English from the top-right language
+  selector beside **Settings**.
 
-## Install
+## Download And Run
+
+For normal Windows users, download `STM32GitReleaseTool.exe` from the GitHub
+Releases page.
+
+Requirements:
+
+- Windows 10 or Windows 11 for the standard build
+- Git installed and available in `PATH`
+
+The application is portable. Place the EXE in any writable folder and run it.
+Project settings, logs, diagnostics, release packages, and recovery metadata are
+stored inside the selected project under `.stm32_git_tool/`.
+
+> Windows 7 requires a separately built legacy package using an older Python,
+> PyQt5, and PyInstaller toolchain. The standard build produced by the current
+> Python 3.13 environment does not claim Windows 7 compatibility.
+
+### Build On Windows 7
+
+Use `STM32GitReleaseTool-Win7-BuildKit.zip` when a Windows 7 build is required:
+
+1. Use Windows 7 SP1 64-bit with current SHA-2 and TLS updates.
+2. Install 64-bit Python 3.8.10 and select **Add Python to PATH**.
+3. Install Git for Windows and make sure `git --version` works.
+4. Extract the complete build kit to a writable path without Chinese
+   characters or an excessively long directory name.
+5. Double-click `final_build_win7.bat`.
+
+The script creates an isolated `.win7_build_env`, installs fixed legacy
+dependencies, builds the application, and writes
+`STM32GitReleaseTool-Win7.exe` beside the BAT file.
+
+Fixed legacy build versions:
+
+- Python 3.8.x 64-bit
+- PyQt5 5.15.2
+- PyQt5-Qt5 5.15.2
+- PyQt5-sip 12.13.0
+- PyInstaller 4.10
+
+For offline building, place all required wheels in a `win7_wheels` directory
+beside the BAT file. The script uses that directory instead of PyPI when it
+exists.
+
+## Run From Source
 
 Requirements:
 
 - Windows
-- Python 3.10+
+- Python 3.10 or newer
 - Git available in `PATH`
 
-Install dependencies and run:
-
 ```powershell
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 python .\main.py
 ```
 
-## Typical Flow
+## Build The Windows EXE
 
-1. Select the STM32 project directory.
-2. Initialize the repository the first time.
-3. Modify source files.
-4. Use `Commit Version` to create a version commit.
-5. Use `Release` to create a tag and release package.
-6. Optionally configure a remote repository and push branch/tag refs.
+Install the runtime dependency and PyInstaller, then run the build script:
 
-## Branches And Release Tags
+```powershell
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-build.txt
+powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
+```
 
-- Branches are for work lines such as `master`, `dev`, `feature/*`, `work/v1.3`.
-- Releases are represented by Git tags such as `v1.0`, `v1.1`, `v1.3`.
-- If the repository is in detached HEAD state, the tool can create a work branch from the current commit before continuing commit or release actions.
+The final executable is written to:
+
+```text
+dist/STM32GitReleaseTool.exe
+```
+
+The script removes previous `build/` and `dist/` output, builds from
+`STM32GitReleaseTool.spec`, and performs a basic EXE existence and size check.
+
+## Typical Workflow
+
+1. Select the STM32 project root directory.
+2. Click **Initialize Project** only when using the tool on a new repository.
+3. Modify and compile the project.
+4. Click **Commit Version** and confirm the meaningful file list.
+5. Click **Publish Release** to create a Git tag and release ZIP.
+6. Configure a remote URL in **Settings**.
+7. Use **Push + Tags** to publish the branch and tags.
+
+Branches and releases serve different purposes:
+
+- Branches such as `master`, `dev`, `feature/*`, and `fix/*` hold lines of work.
+- Tags such as `v1.0.0` identify immutable release points.
+- A release does not require a separate branch for every version.
+
+## Safety Notes
+
+- **Browse History** enters detached HEAD mode for inspection only. Use
+  **Return To Branch** before continuing normal development.
+- Prefer **Revert** for undoing a published commit because it preserves history.
+- **Force Reset** changes project files and history. The tool requires password
+  and `RESET` confirmation and creates a `backup/*` branch first.
+- Review the file list before every commit and release.
+- Keep an external remote backup for important repositories.
 
 ## Diff Behavior
 
-- The in-app code diff preview ignores whitespace-only changes for easier review.
-- Full diff export keeps the original patch content for strict inspection or archival use.
-- Version comparison is directional: `base -> target`.
+- The in-app code diff ignores whitespace-only changes for easier review.
+- Repeated source lines are preserved; they are not deduplicated.
+- Firmware and build artifacts are filtered from code-oriented previews.
+- Full diff export preserves the original Git patch for strict review.
 
 ## Repository Hygiene
 
-The tool treats the following as non-source artifacts and filters them from meaningful-change checks:
+The tool filters common non-source artifacts, including:
 
-- `*.hex`
-- `*.bin`
-- `*.crf`
-- `*.elf`
-- `*.lib`
-- `*.a`
-- `*.obj`
-- `*.map`
-- `*.axf`
-- `*.o`
-- `*.d`
+- `*.hex`, `*.bin`, `*.crf`
+- `*.elf`, `*.lib`, `*.a`, `*.obj`
+- `*.map`, `*.axf`, `*.o`, `*.d`
+- Keil user cache and generated report files
+- `.stm32_git_tool/`
 
-It also ignores Python cache files used during local development of this tool itself.
+## Verification
+
+Run the isolated critical-flow smoke test:
+
+```powershell
+python .\tests\smoke_test.py
+```
+
+The test creates temporary local repositories and verifies initialization,
+commits, meaningful-change filtering, tags, diffs, branches, backup/reset,
+release packaging, local remote push, and clone recovery.
+
+## Current Release
+
+The current stable release is `v1.0.0`. The application title displays
+`V1.0`, while Windows file metadata uses the full semantic version `1.0.0`.
+See [CHANGELOG.md](./CHANGELOG.md) for release details.
 
 ## Known Limitations
 
-- Windows-first; not tested as a cross-platform GUI tool.
-- Built around STM32/Keil-style project layouts, not arbitrary embedded repositories.
-- Remote Git hosting integration is minimal unless a repository remote is configured locally.
+- Windows-first desktop application.
+- Designed for STM32 and Keil-style project structures rather than arbitrary
+  Git repositories.
+- Git credentials are managed by the installed Git environment.
+- The project currently has a smoke test but no full GUI automation suite.
 
-## Open Source Status
+## 中文说明
 
-Recommended first public release:
+STM32 Git Release Tool 是面向 STM32、Keil MDK 和 STM32CubeMX 工程的 Windows
+桌面工具，用按钮封装常用 Git 和版本发布操作。
 
-- `v0.1.0`
+主要功能包括：
 
-Reason:
+- 初始化 Git 工程并生成 STM32 忽略规则
+- 过滤编译产物后提交有效源码
+- 创建版本 tag 和 Release ZIP
+- 查看历史、代码 Diff 和版本对比
+- 管理分支、备份分支和安全恢复
+- 清理 Keil 编译缓存
+- Pull、Push、Push Tags、验证远程和克隆
+- 在主界面“设置”旁直接切换简体中文和 English
 
-- the tool is already usable
-- behavior is still being refined from real project feedback
-- workflow and UX may continue to change
+普通用户建议从 GitHub Releases 下载 `STM32GitReleaseTool.exe`。运行前需要
+安装 Git，并确保命令行能够执行 `git --version`。
+
+推荐流程：
+
+1. 选择 STM32 工程根目录。
+2. 新工程第一次使用时点击“初始化工程”。
+3. 修改并编译代码。
+4. 点击“提交版本”，核对文件列表后提交。
+5. 点击“发布 Release”，创建 tag 和发布包。
+6. 配置远程地址后使用“Push + Tags”推送代码和版本标签。
+
+查看历史版本会进入 detached HEAD 状态，这只是查看旧版本。继续开发前应点击
+“返回分支”。已经推送或发布的提交优先使用 Revert 撤销，谨慎使用强制回退。
 
 ## License
 

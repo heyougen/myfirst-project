@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 
 class BackupManager:
@@ -12,7 +13,7 @@ class BackupManager:
         self.git.run(["branch", name, "HEAD"], check=True)
         return name
 
-    def list_backups(self) -> list[str]:
+    def list_backups(self) -> List[str]:
         branches = self.git.list_branches()
         return [branch for branch in branches if branch.startswith("backup/")]
 

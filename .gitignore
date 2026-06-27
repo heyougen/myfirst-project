@@ -21,3 +21,15 @@ Listings/
 *.obj
 __pycache__/
 *.pyc
+build/
+dist/
+*.spec.bak
+.win7_build_env/
+win7_build/
+win7_dist/
+win7_spec/
+win7_release/
+STM32GitReleaseTool-Win7.exe
+STM32GitReleaseTool-Win7.sha256.txt
+STM32GitReleaseTool-Win7-BuildKit.zip
+release_assets/

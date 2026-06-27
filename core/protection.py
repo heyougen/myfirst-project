@@ -3,9 +3,15 @@ import hashlib
 import hmac
 import os
 import subprocess
+from typing import Optional
+
+try:
+    from core.subprocess_utils import hidden_subprocess_kwargs
+except ModuleNotFoundError:
+    from stm32_git_release_tool.core.subprocess_utils import hidden_subprocess_kwargs
 
 
-def hash_password(password: str, salt: bytes | None = None) -> dict:
+def hash_password(password: str, salt: Optional[bytes] = None) -> dict:
     if salt is None:
         salt = os.urandom(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 200000)
@@ -55,6 +61,7 @@ def set_repository_dirs_hidden(project_path: str, hidden: bool, log=None) -> Non
                 capture_output=True,
                 text=True,
                 timeout=5,
+                **hidden_subprocess_kwargs(),
             )
         except (OSError, subprocess.SubprocessError) as exc:
             if log:
@@ -71,6 +78,7 @@ def repository_dirs_hidden(project_path: str) -> bool:
             capture_output=True,
             text=True,
             timeout=5,
+            **hidden_subprocess_kwargs(),
         )
         attributes = completed.stdout.split(maxsplit=1)[0].upper()
         return "H" in attributes
@@ -95,6 +103,7 @@ def ensure_writable_file(path: str, log=None) -> None:
             capture_output=True,
             text=True,
             timeout=5,
+            **hidden_subprocess_kwargs(),
         )
     except (OSError, subprocess.SubprocessError) as exc:
         if log:

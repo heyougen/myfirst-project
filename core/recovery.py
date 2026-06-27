@@ -1,6 +1,11 @@
 import os
 import subprocess
 
+try:
+    from core.subprocess_utils import hidden_subprocess_kwargs
+except ModuleNotFoundError:
+    from stm32_git_release_tool.core.subprocess_utils import hidden_subprocess_kwargs
+
 
 class Recovery:
     @staticmethod
@@ -23,6 +28,7 @@ class Recovery:
             encoding="utf-8",
             errors="replace",
             timeout=600,
+            **hidden_subprocess_kwargs(),
         )
         if completed.returncode != 0:
             raise RuntimeError(completed.stderr.strip() or completed.stdout.strip() or "git clone 失败")

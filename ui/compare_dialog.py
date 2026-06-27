@@ -11,10 +11,12 @@ from PyQt5.QtWidgets import (
 )
 
 try:
+    from core.i18n import tr
     from core.git_worker import TaskWorker
     from ui.diff_view import DiffView
     from ui.help_widgets import make_help_box
 except ModuleNotFoundError:
+    from stm32_git_release_tool.core.i18n import tr
     from stm32_git_release_tool.core.git_worker import TaskWorker
     from stm32_git_release_tool.ui.diff_view import DiffView
     from stm32_git_release_tool.ui.help_widgets import make_help_box
@@ -25,26 +27,26 @@ class CompareDialog(QDialog):
         super().__init__(parent)
         self.git = git_service
         self.thread_pool = QThreadPool.globalInstance()
-        self.setWindowTitle("版本差异对比")
+        self.setWindowTitle(tr("版本差异对比"))
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         self.resize(1280, 760)
         self.setMinimumSize(980, 620)
 
         self.base_combo = QComboBox()
         self.target_combo = QComboBox()
-        self.refresh_button = QPushButton("刷新版本")
-        self.stat_button = QPushButton("文件变更统计")
-        self.commits_button = QPushButton("提交差异")
-        self.diff_button = QPushButton("代码 Diff")
-        self.save_diff_button = QPushButton("保存完整 Diff")
-        self.swap_button = QPushButton("交换")
+        self.refresh_button = QPushButton(tr("刷新版本"))
+        self.stat_button = QPushButton(tr("文件变更统计"))
+        self.commits_button = QPushButton(tr("提交差异"))
+        self.diff_button = QPushButton(tr("代码 Diff"))
+        self.save_diff_button = QPushButton(tr("保存完整 Diff"))
+        self.swap_button = QPushButton(tr("交换"))
         self.output = DiffView()
         self.direction_label = QLabel()
         self.direction_label.setStyleSheet("color:#6e6e73; padding:2px 0; font-weight:600;")
 
         form = QFormLayout()
-        form.addRow("基准版本", self.base_combo)
-        form.addRow("目标版本", self.target_combo)
+        form.addRow(tr("基准版本"), self.base_combo)
+        form.addRow(tr("目标版本"), self.target_combo)
 
         row = QHBoxLayout()
         for button in [
@@ -97,7 +99,7 @@ class CompareDialog(QDialog):
         base = self.base_combo.currentText().strip() or "-"
         target = self.target_combo.currentText().strip() or "-"
         self.direction_label.setText(
-            f"当前对比方向：{base} -> {target}。红色表示 {base} 中存在但 {target} 中没有；绿色表示 {target} 新增。"
+            f"{tr('基准版本')}: {base} -> {tr('目标版本')}: {target}"
         )
 
     def set_busy(self, busy):
@@ -107,7 +109,7 @@ class CompareDialog(QDialog):
     def run_async(self, func, on_finished=None):
         worker = TaskWorker(func)
         self.set_busy(True)
-        worker.signals.error.connect(lambda text: QMessageBox.warning(self, "错误", text))
+        worker.signals.error.connect(lambda text: QMessageBox.warning(self, tr("错误"), text))
         worker.signals.error.connect(lambda _: self.set_busy(False))
         worker.signals.finished.connect(lambda result: self.set_busy(False))
         if on_finished:
@@ -128,7 +130,7 @@ class CompareDialog(QDialog):
                 self.target_combo.setCurrentIndex(0)
                 self.update_direction_label()
             else:
-                self.output.set_plain("当前没有可对比的 tag。请先提交并发布至少一个版本，或使用 HEAD 与已有 tag 对比。")
+                self.output.set_plain(tr("当前没有可对比的 tag。请先提交并发布至少一个版本，或使用 HEAD 与已有 tag 对比。"))
 
         self.run_async(self.git.list_tags, on_finished=apply)
 
@@ -136,12 +138,12 @@ class CompareDialog(QDialog):
         base = self.base_combo.currentText().strip()
         target = self.target_combo.currentText().strip()
         if not base or not target:
-            QMessageBox.information(self, "版本不足", "请至少选择两个版本或 HEAD。")
-            self.output.set_plain("请选择基准版本和目标版本。")
+            QMessageBox.information(self, tr("版本不足"), tr("请至少选择两个版本或 HEAD。"))
+            self.output.set_plain(tr("请选择基准版本和目标版本。"))
             return "", ""
         if base == target:
-            QMessageBox.information(self, "版本相同", "基准版本和目标版本相同，没有可对比内容。")
-            self.output.set_plain("基准版本和目标版本相同，没有可对比内容。")
+            QMessageBox.information(self, tr("版本相同"), tr("基准版本和目标版本相同，没有可对比内容。"))
+            self.output.set_plain(tr("基准版本和目标版本相同，没有可对比内容。"))
             return "", ""
         return base, target
 
@@ -156,38 +158,38 @@ class CompareDialog(QDialog):
         base, target = self.selected_refs()
         if not base:
             return
-        self.output.set_plain("正在生成文件变更统计...")
+        self.output.set_plain(tr("正在生成文件变更统计..."))
         self.run_async(
             lambda: self.git.diff_stat_between(base, target),
-            on_finished=lambda text: self.output.set_plain(text or "没有文件差异。"),
+            on_finished=lambda text: self.output.set_plain(text or tr("没有文件差异。")),
         )
 
     def show_commits(self):
         base, target = self.selected_refs()
         if not base:
             return
-        self.output.set_plain("正在查询提交差异...")
+        self.output.set_plain(tr("正在查询提交差异..."))
         self.run_async(
             lambda: self.git.commits_between(base, target),
-            on_finished=lambda text: self.output.set_plain(text or "没有新增提交。"),
+            on_finished=lambda text: self.output.set_plain(text or tr("没有新增提交。")),
         )
 
     def show_diff(self):
         base, target = self.selected_refs()
         if not base:
             return
-        self.output.set_loading("正在生成代码差异，固件/编译产物会被过滤...")
+        self.output.set_loading(tr("正在生成代码差异，固件/编译产物会被过滤..."))
         self.run_async(
             lambda: self.git.code_diff_between_preview(base, target),
-            on_finished=lambda text: self.output.set_diff(text or "没有代码差异。"),
+            on_finished=lambda text: self.output.set_diff(text or tr("没有代码差异。")),
         )
 
     def save_diff(self):
         base, target = self.selected_refs()
         if not base:
             return
-        self.output.set_plain("正在保存完整 diff...")
+        self.output.set_plain(tr("正在保存完整 diff..."))
         self.run_async(
             lambda: self.git.save_diff_between(base, target),
-            on_finished=lambda path: self.output.set_plain(f"完整 Diff 已保存到：\n{path}"),
+            on_finished=lambda path: self.output.set_plain(tr("完整 Diff 已保存到：\n{path}", path=path)),
         )

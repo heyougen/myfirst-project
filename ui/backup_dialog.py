@@ -9,10 +9,12 @@ from PyQt5.QtWidgets import (
 )
 
 try:
+    from core.i18n import tr
     from core.backup_manager import BackupManager
     from core.git_worker import TaskWorker
     from ui.help_widgets import make_help_box
 except ModuleNotFoundError:
+    from stm32_git_release_tool.core.i18n import tr
     from stm32_git_release_tool.core.backup_manager import BackupManager
     from stm32_git_release_tool.core.git_worker import TaskWorker
     from stm32_git_release_tool.ui.help_widgets import make_help_box
@@ -26,14 +28,14 @@ class BackupDialog(QDialog):
         self.refresh_callback = refresh_callback
         self.verify_callback = verify_callback
         self.thread_pool = QThreadPool.globalInstance()
-        self.setWindowTitle("备份分支管理")
+        self.setWindowTitle(tr("备份分支管理"))
         self.resize(760, 420)
 
         self.list_widget = QListWidget()
-        self.refresh_button = QPushButton("刷新")
-        self.checkout_button = QPushButton("查看备份")
-        self.restore_button = QPushButton("恢复到备份")
-        self.delete_button = QPushButton("删除备份")
+        self.refresh_button = QPushButton(tr("刷新"))
+        self.checkout_button = QPushButton(tr("查看备份"))
+        self.restore_button = QPushButton(tr("恢复到备份"))
+        self.delete_button = QPushButton(tr("删除备份"))
         self.buttons = [self.refresh_button, self.checkout_button, self.restore_button, self.delete_button]
 
         row = QHBoxLayout()
@@ -70,7 +72,7 @@ class BackupDialog(QDialog):
     def run_async(self, func, on_finished=None):
         worker = TaskWorker(func)
         self.set_busy(True)
-        worker.signals.error.connect(lambda text: QMessageBox.warning(self, "错误", text))
+        worker.signals.error.connect(lambda text: QMessageBox.warning(self, tr("错误"), text))
         worker.signals.error.connect(lambda _: self.set_busy(False))
         worker.signals.finished.connect(lambda result: self.set_busy(False))
         if on_finished:
@@ -93,14 +95,14 @@ class BackupDialog(QDialog):
         name = self.selected_backup()
         if not name:
             return
-        if QMessageBox.question(self, "确认恢复", f"确认 reset --hard 到备份分支？\n\n{name}") != QMessageBox.Yes:
+        if QMessageBox.question(self, tr("确认恢复"), f"reset --hard -> {name}?") != QMessageBox.Yes:
             return
-        if self.verify_callback and not self.verify_callback("恢复到备份分支"):
+        if self.verify_callback and not self.verify_callback(tr("恢复到备份分支")):
             return
 
         def after_dirty(changes):
             if changes:
-                QMessageBox.warning(self, "存在未提交修改", "请先提交、暂存或放弃当前修改后再恢复备份。")
+                QMessageBox.warning(self, tr("存在未提交修改"), tr("请先提交、暂存或放弃当前修改后再恢复备份。"))
                 return
             self.run_async(lambda: self.restore_with_backup(name), lambda _: self.refresh_callback())
 
@@ -109,12 +111,12 @@ class BackupDialog(QDialog):
     def restore_with_backup(self, name):
         current_backup = self.manager.create_backup("before-restore-backup")
         result = self.manager.reset_to_backup(name)
-        return f"已恢复到 {name}，恢复前状态已备份到 {current_backup}: {result.stdout.strip()}"
+        return tr("已恢复到 ") + name + tr("，恢复前状态已备份到 ") + f"{current_backup}: {result.stdout.strip()}"
 
     def delete_backup(self):
         name = self.selected_backup()
         if not name:
             return
-        if QMessageBox.question(self, "确认删除", f"确认删除备份分支？\n\n{name}") != QMessageBox.Yes:
+        if QMessageBox.question(self, tr("确认删除"), f"{tr('删除备份')} {name}?") != QMessageBox.Yes:
             return
         self.run_async(lambda: self.manager.delete_backup(name), lambda _: self.load_backups())

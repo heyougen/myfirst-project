@@ -10,9 +10,11 @@ from PyQt5.QtWidgets import (
 )
 
 try:
+    from core.i18n import tr
     from core.project_templates import get_template, template_names
     from ui.help_widgets import make_help_box
 except ModuleNotFoundError:
+    from stm32_git_release_tool.core.i18n import tr
     from stm32_git_release_tool.core.project_templates import get_template, template_names
     from stm32_git_release_tool.ui.help_widgets import make_help_box
 
@@ -20,7 +22,7 @@ except ModuleNotFoundError:
 class SettingsDialog(QDialog):
     def __init__(self, config, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("设置")
+        self.setWindowTitle(tr("设置"))
         self.resize(680, 300)
         self.config = config.copy()
 
@@ -36,19 +38,18 @@ class SettingsDialog(QDialog):
         self.exclude_patterns = QLineEdit(",".join(self.config.get("exclude_patterns", [])))
         self.firmware_patterns = QLineEdit(",".join(self.config.get("firmware_patterns", [])))
         self.remote = QLineEdit(self.config.get("remote", ""))
-
         form = QFormLayout()
-        form.addRow("项目类型", self.project_type)
-        form.addRow("固件目录", self.firmware_dir)
-        form.addRow("发布目录", self.release_dir)
-        form.addRow("源码目录", self.include_dirs)
-        form.addRow("排除目录", self.exclude_dirs)
-        form.addRow("排除文件", self.exclude_patterns)
-        form.addRow("产物规则", self.firmware_patterns)
-        form.addRow("远程地址", self.remote)
+        form.addRow(tr("项目类型"), self.project_type)
+        form.addRow(tr("固件目录"), self.firmware_dir)
+        form.addRow(tr("发布目录"), self.release_dir)
+        form.addRow(tr("源码目录"), self.include_dirs)
+        form.addRow(tr("排除目录"), self.exclude_dirs)
+        form.addRow(tr("排除文件"), self.exclude_patterns)
+        form.addRow(tr("产物规则"), self.firmware_patterns)
+        form.addRow(tr("远程地址"), self.remote)
 
-        self.ok_button = QPushButton("保存")
-        self.cancel_button = QPushButton("取消")
+        self.ok_button = QPushButton(tr("保存"))
+        self.cancel_button = QPushButton(tr("取消"))
         buttons = QHBoxLayout()
         buttons.addStretch()
         buttons.addWidget(self.ok_button)

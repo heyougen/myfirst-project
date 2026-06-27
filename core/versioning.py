@@ -1,5 +1,10 @@
 import re
 
+try:
+    from core.i18n import tr
+except ModuleNotFoundError:
+    from stm32_git_release_tool.core.i18n import tr
+
 
 VERSION_PATTERN = re.compile(r"^v\d+(?:\.\d+){0,3}(?:-[A-Za-z0-9._]+)?$")
 
@@ -20,4 +25,4 @@ def is_valid_version(version: str) -> bool:
 
 
 def version_help() -> str:
-    return "版本号格式建议：v1、v1.0、v1.0.1、v1.0-101"
+    return tr("版本号格式建议：v1、v1.0、v1.0.1、v1.0-101")

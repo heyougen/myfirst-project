@@ -10,9 +10,11 @@ from PyQt5.QtWidgets import (
 )
 
 try:
+    from core.i18n import tr
     from core.git_worker import TaskWorker
     from ui.help_widgets import make_help_box
 except ModuleNotFoundError:
+    from stm32_git_release_tool.core.i18n import tr
     from stm32_git_release_tool.core.git_worker import TaskWorker
     from stm32_git_release_tool.ui.help_widgets import make_help_box
 
@@ -23,16 +25,16 @@ class BranchDialog(QDialog):
         self.git = git_service
         self.refresh_callback = refresh_callback
         self.thread_pool = QThreadPool.globalInstance()
-        self.setWindowTitle("分支管理")
+        self.setWindowTitle(tr("分支管理"))
         self.resize(620, 380)
 
         self.branch_list = QListWidget()
-        self.create_button = QPushButton("创建分支")
-        self.checkout_button = QPushButton("切换分支")
-        self.delete_button = QPushButton("删除分支")
-        self.force_delete_button = QPushButton("强制删除")
-        self.merge_button = QPushButton("合并分支")
-        self.refresh_button = QPushButton("刷新")
+        self.create_button = QPushButton(tr("创建分支"))
+        self.checkout_button = QPushButton(tr("切换分支"))
+        self.delete_button = QPushButton(tr("删除分支"))
+        self.force_delete_button = QPushButton(tr("强制删除"))
+        self.merge_button = QPushButton(tr("合并分支"))
+        self.refresh_button = QPushButton(tr("刷新"))
         self.buttons = [
             self.create_button,
             self.checkout_button,
@@ -70,7 +72,7 @@ class BranchDialog(QDialog):
     def run_async(self, func, on_finished=None, refresh=True):
         worker = TaskWorker(func)
         self.set_busy(True)
-        worker.signals.error.connect(lambda text: QMessageBox.warning(self, "错误", text))
+        worker.signals.error.connect(lambda text: QMessageBox.warning(self, tr("错误"), text))
         worker.signals.error.connect(lambda _: self.set_busy(False))
         worker.signals.finished.connect(lambda result: self.set_busy(False))
         if on_finished:
@@ -95,7 +97,7 @@ class BranchDialog(QDialog):
         return item.text() if item else ""
 
     def create_branch(self):
-        name, ok = QInputDialog.getText(self, "创建分支", "分支名称：")
+        name, ok = QInputDialog.getText(self, tr("创建分支"), tr("分支名称："))
         if ok and name.strip():
             self.run_async(lambda: self.git.create_branch(name.strip()), on_finished=lambda _: self.load_branches())
 
@@ -106,7 +108,7 @@ class BranchDialog(QDialog):
 
         def after_dirty(changes):
             if changes:
-                reply = QMessageBox.question(self, "存在未提交修改", "当前存在未提交修改，仍要切换分支吗？")
+                reply = QMessageBox.question(self, tr("存在未提交修改"), tr("当前存在未提交修改，仍要切换分支吗？"))
                 if reply != QMessageBox.Yes:
                     return
             self.run_async(lambda: self.git.checkout_branch(branch), on_finished=lambda _: self.accept())
@@ -117,8 +119,8 @@ class BranchDialog(QDialog):
         branch = self.selected_branch()
         if not branch:
             return
-        text = f"确认{'强制' if force else ''}删除分支 {branch}？"
-        if QMessageBox.question(self, "确认删除", text) != QMessageBox.Yes:
+        text = f"{tr('强制删除') if force else tr('删除分支')} {branch}?"
+        if QMessageBox.question(self, tr("确认删除"), text) != QMessageBox.Yes:
             return
         self.run_async(lambda: self.git.delete_branch(branch, force=force), on_finished=lambda _: self.load_branches())
 
@@ -126,6 +128,6 @@ class BranchDialog(QDialog):
         branch = self.selected_branch()
         if not branch:
             return
-        if QMessageBox.question(self, "确认合并", f"确认将 {branch} 合并到当前分支？") != QMessageBox.Yes:
+        if QMessageBox.question(self, tr("确认合并"), f"{tr('合并分支')} {branch}?") != QMessageBox.Yes:
             return
         self.run_async(lambda: self.git.merge_branch(branch), on_finished=lambda _: self.load_branches())

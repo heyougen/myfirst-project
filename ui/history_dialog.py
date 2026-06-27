@@ -9,10 +9,12 @@ from PyQt5.QtWidgets import (
 )
 
 try:
+    from core.i18n import tr
     from core.git_worker import TaskWorker
     from ui.diff_view import DiffView
     from ui.help_widgets import make_help_box
 except ModuleNotFoundError:
+    from stm32_git_release_tool.core.i18n import tr
     from stm32_git_release_tool.core.git_worker import TaskWorker
     from stm32_git_release_tool.ui.diff_view import DiffView
     from stm32_git_release_tool.ui.help_widgets import make_help_box
@@ -26,7 +28,7 @@ class HistoryDialog(QDialog):
         self.reset_callback = reset_callback
         self.verify_callback = verify_callback
         self.thread_pool = QThreadPool.globalInstance()
-        self.setWindowTitle("提交历史")
+        self.setWindowTitle(tr("提交历史"))
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         self.resize(1280, 760)
         self.setMinimumSize(980, 620)
@@ -58,11 +60,11 @@ class HistoryDialog(QDialog):
             """
         )
         self.diff_view = DiffView()
-        self.view_diff_button = QPushButton("查看代码 Diff")
-        self.revert_button = QPushButton("安全回滚 Revert")
-        self.reset_button = QPushButton("强制回退 Reset")
-        self.save_diff_button = QPushButton("保存完整 Diff")
-        self.refresh_button = QPushButton("刷新")
+        self.view_diff_button = QPushButton(tr("查看代码 Diff"))
+        self.revert_button = QPushButton(tr("安全回滚 Revert"))
+        self.reset_button = QPushButton(tr("强制回退 Reset"))
+        self.save_diff_button = QPushButton(tr("保存完整 Diff"))
+        self.refresh_button = QPushButton(tr("刷新"))
         self.buttons = [
             self.view_diff_button,
             self.save_diff_button,
@@ -99,7 +101,7 @@ class HistoryDialog(QDialog):
     def run_async(self, func, on_finished=None, refresh=True):
         worker = TaskWorker(func)
         self.set_busy(True)
-        worker.signals.error.connect(lambda text: QMessageBox.warning(self, "错误", text))
+        worker.signals.error.connect(lambda text: QMessageBox.warning(self, tr("错误"), text))
         worker.signals.error.connect(lambda _: self.set_busy(False))
         worker.signals.finished.connect(lambda result: self.set_busy(False))
         if on_finished:
@@ -130,48 +132,48 @@ class HistoryDialog(QDialog):
     def view_diff(self):
         commit_hash = self.selected_hash()
         if not commit_hash:
-            QMessageBox.information(self, "未选择提交", "请先在上方提交历史列表中选择一条记录。")
+            QMessageBox.information(self, tr("未选择提交"), tr("请先在上方提交历史列表中选择一条记录。"))
             return
-        self.diff_view.set_loading("正在加载代码差异...")
+        self.diff_view.set_loading(tr("正在加载代码差异..."))
         self.run_async(lambda: self.git.code_diff_preview(commit_hash), on_finished=self.diff_view.set_diff, refresh=False)
 
     def save_diff(self):
         commit_hash = self.selected_hash()
         if not commit_hash:
-            QMessageBox.information(self, "未选择提交", "请先在上方提交历史列表中选择一条记录。")
+            QMessageBox.information(self, tr("未选择提交"), tr("请先在上方提交历史列表中选择一条记录。"))
             return
 
         def apply(path):
-            self.diff_view.set_plain(f"完整 Diff 已保存到：\n{path}")
+            self.diff_view.set_plain(tr("完整 Diff 已保存到：\n{path}", path=path))
 
         self.run_async(lambda: self.git.save_diff(commit_hash), on_finished=apply, refresh=False)
 
     def revert_commit(self):
         commit_hash = self.selected_hash()
         if not commit_hash:
-            QMessageBox.information(self, "未选择提交", "请先在上方提交历史列表中选择一条记录。")
+            QMessageBox.information(self, tr("未选择提交"), tr("请先在上方提交历史列表中选择一条记录。"))
             return
-        if QMessageBox.question(self, "确认回滚", f"确认使用 git revert 撤销 {commit_hash}？") != QMessageBox.Yes:
+        if QMessageBox.question(self, tr("确认回滚"), tr("确认使用 git revert 撤销 {commit_hash}？", commit_hash=commit_hash)) != QMessageBox.Yes:
             return
         self.run_async(lambda: self.git.revert_commit(commit_hash), on_finished=lambda _: self.load_history())
 
     def reset_commit(self):
         commit_hash = self.selected_hash()
         if not commit_hash:
-            QMessageBox.information(self, "未选择提交", "请先在上方提交历史列表中选择一条记录。")
+            QMessageBox.information(self, tr("未选择提交"), tr("请先在上方提交历史列表中选择一条记录。"))
             return
         if QMessageBox.question(
             self,
-            "危险操作",
-            f"确认强制回退到提交 {commit_hash}？\n\n工具会先创建 backup 分支，回退错误时可从“备份管理”恢复。",
+            tr("危险操作"),
+            tr("确认强制回退到提交 {commit_hash}？\n\n工具会先创建 backup 分支，回退错误时可从“备份管理”恢复。", commit_hash=commit_hash),
         ) != QMessageBox.Yes:
             return
-        if self.verify_callback and not self.verify_callback("强制回退到 commit"):
+        if self.verify_callback and not self.verify_callback(tr("强制回退到 commit")):
             return
 
         def after_dirty(changes):
             if changes:
-                QMessageBox.warning(self, "存在未提交修改", "请先提交、暂存或放弃当前修改后再强制回退。")
+                QMessageBox.warning(self, tr("存在未提交修改"), tr("请先提交、暂存或放弃当前修改后再强制回退。"))
                 return
             action = self.reset_callback or self.git.reset_hard_commit
             self.run_async(lambda: action(commit_hash), on_finished=lambda _: self.load_history())

@@ -3,6 +3,11 @@ import re
 
 from PyQt5.QtWidgets import QHBoxLayout, QListWidget, QTextEdit, QWidget
 
+try:
+    from core.i18n import tr
+except ModuleNotFoundError:
+    from stm32_git_release_tool.core.i18n import tr
+
 
 class DiffView(QWidget):
     def __init__(self, parent=None):
@@ -45,7 +50,9 @@ class DiffView(QWidget):
 
         self.file_list.currentRowChanged.connect(self._show_section)
 
-    def set_loading(self, message="正在加载代码差异..."):
+    def set_loading(self, message=None):
+        if message is None:
+            message = tr("正在加载代码差异...")
         self.sections = []
         self.file_list.clear()
         self.text.setPlainText(message)
@@ -79,7 +86,7 @@ def split_diff_sections(diff_text):
         if current_lines:
             sections.append(
                 {
-                    "file": current_file or "Diff",
+                    "file": current_file or tr("Diff"),
                     "text": "\n".join(current_lines),
                 }
             )
@@ -92,13 +99,13 @@ def split_diff_sections(diff_text):
             continue
         if not current_lines and (line.startswith("commit ") or line.startswith("Author:") or line.startswith("Date:")):
             current_lines = [line]
-            current_file = "提交信息"
+            current_file = tr("提交信息")
             continue
         if current_lines:
             current_lines.append(line)
         else:
             current_lines = [line]
-            current_file = "Diff"
+            current_file = tr("Diff")
 
     flush()
     if len(sections) > 1 and sections[0]["file"] == "提交信息":
@@ -159,16 +166,16 @@ def render_diff_html(diff_text):
         rows.append(render_row(old_no, new_no, line_text, kind))
 
     if not rows:
-        rows.append('<tr><td colspan="3" style="padding:12px;color:#6e6e73;">没有代码差异。</td></tr>')
+        rows.append(f'<tr><td colspan="3" style="padding:12px;color:#6e6e73;">{tr("没有代码差异。")}</td></tr>')
 
     return (
         '<html><body style="margin:0;background:#ffffff;">'
         '<table cellspacing="0" cellpadding="0" style="width:100%; '
         'font-family:Consolas, Cascadia Mono, monospace; font-size:12px;">'
         '<tr style="background:#f2f2f7;color:#6e6e73;">'
-        '<th style="width:54px;text-align:right;padding:3px 8px;">旧行</th>'
-        '<th style="width:54px;text-align:right;padding:3px 8px;">新行</th>'
-        '<th style="text-align:left;padding:3px 8px;">代码差异</th>'
+        f'<th style="width:54px;text-align:right;padding:3px 8px;">{tr("旧行")}</th>'
+        f'<th style="width:54px;text-align:right;padding:3px 8px;">{tr("新行")}</th>'
+        f'<th style="text-align:left;padding:3px 8px;">{tr("代码差异")}</th>'
         '</tr>'
         + "\n".join(rows)
         + "</table></body></html>"

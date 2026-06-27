@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "project_type": "STM32 Keil",
+    "language": "zh_CN",
     "protection_enabled": False,
     "password_hash": "",
     "password_salt": "",
