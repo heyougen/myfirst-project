@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.backup_manager import BackupManager
-from core.config_manager import DEFAULT_CONFIG
+from core.config_manager import AppStateManager, DEFAULT_CONFIG
 from core.git_service import GitService
 from core.recovery import Recovery
 from core.release_packager import ReleasePackager
@@ -81,6 +81,12 @@ def run() -> None:
         write(firmware, ":00000001FF\n")
         write(noise, "build artifact\n")
 
+        app_state = AppStateManager(str(root / "app_state.json"))
+        app_state.save_last_project(str(project))
+        state = app_state.load()
+        assert_true(state["last_project_path"] == str(project.resolve()), "last project path was not saved")
+        assert_true(state["recent_projects"][0] == str(project.resolve()), "recent projects were not updated")
+
         git = GitService(str(project))
         git.run(["init", "-b", "master"], check=True)
         git.run(["config", "user.name", "Smoke Test"], check=True)
@@ -88,6 +94,7 @@ def run() -> None:
         git.add_all()
         assert_true(git.commit("initial").ok, "initial commit failed")
         git.tag("v0.1.0")
+        assert_true(git.current_tag() == "v0.1.0", "exact current tag was not detected")
 
         write(source, "int main(void) {\n    return 1;\n}\n")
         write(noise, "new build artifact\n")
@@ -98,7 +105,10 @@ def run() -> None:
         git.add_paths(["Src/main.c"])
         assert_true(git.commit("v0.2.0 - source update").ok, "version commit failed")
         git.tag("v0.2.0")
+        assert_true(git.current_tag() == "v0.2.0", "new exact current tag was not detected")
         assert_true("v0.2.0" in git.list_tags(), "release tag is missing")
+        refs = git.list_compare_refs()
+        assert_true(any(ref["kind"] == "commit" and "v0.2.0 - source update" in ref["label"] for ref in refs), "commit refs are missing from compare list")
         code_diff = git.code_diff_between_preview("v0.1.0", "v0.2.0")
         assert_true("return 1" in code_diff, "code diff does not contain the source change")
 
@@ -106,6 +116,7 @@ def run() -> None:
         write(header, "#pragma once\n#define SMOKE_TEST 1\n")
         git.add_paths(["Inc/main.h"])
         assert_true(git.commit("add smoke header").ok, "feature commit failed")
+        assert_true(git.current_tag() == "", "nearest tag was incorrectly reported as current tag")
         git.checkout_branch("master")
         assert_true(git.merge_branch("feature/smoke").ok, "branch merge failed")
 

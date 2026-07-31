@@ -3,7 +3,7 @@ import subprocess
 import fnmatch
 import locale
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional
 
 try:
     from core.git_errors import humanize_git_error
@@ -374,12 +374,31 @@ class GitService:
         return result.stdout.strip() or "(detached)"
 
     def current_tag(self) -> str:
-        result = self.run(["describe", "--tags", "--abbrev=0"])
+        result = self.run(["describe", "--tags", "--exact-match"])
         return result.stdout.strip() if result.ok else ""
 
     def list_tags(self) -> List[str]:
         result = self.run(["tag", "--sort=-creatordate"])
         return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+    def list_compare_refs(self, limit: int = 80) -> List[Dict[str, str]]:
+        refs = [{"label": "HEAD", "ref": "HEAD", "kind": "head"}]
+        for tag in self.list_tags():
+            refs.append({"label": f"tag: {tag}", "ref": tag, "kind": "tag"})
+
+        fmt = "%H%x09%h%x09%ad%x09%s"
+        result = self.run(["log", f"--max-count={limit}", "--date=short", f"--pretty=format:{fmt}"])
+        for line in result.stdout.splitlines():
+            parts = line.split("\t", 3)
+            if len(parts) != 4:
+                continue
+            full_hash, short_hash, date, subject = parts
+            refs.append({
+                "label": f"commit: {short_hash}  {date}  {subject}",
+                "ref": full_hash,
+                "kind": "commit",
+            })
+        return refs
 
     def list_branches(self) -> List[str]:
         result = self.run(["branch", "--list"])

@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
 
 try:
     from core.backup_manager import BackupManager
-    from core.config_manager import ConfigManager
+    from core.config_manager import AppStateManager, ConfigManager
     from core.git_service import GitService
     from core.git_worker import TaskWorker
     from core.i18n import LANGUAGE_OPTIONS, set_language, tr
@@ -46,7 +46,7 @@ try:
     from ui.settings_dialog import SettingsDialog
 except ModuleNotFoundError:
     from stm32_git_release_tool.core.backup_manager import BackupManager
-    from stm32_git_release_tool.core.config_manager import ConfigManager
+    from stm32_git_release_tool.core.config_manager import AppStateManager, ConfigManager
     from stm32_git_release_tool.core.git_service import GitService
     from stm32_git_release_tool.core.git_worker import TaskWorker
     from stm32_git_release_tool.core.i18n import LANGUAGE_OPTIONS, set_language, tr
@@ -215,7 +215,9 @@ class MainWindow(QMainWindow):
         self.last_status = {"repo": False, "branch": "-", "tag": "-", "dirty": "-", "tags": []}
         self.action_buttons = []
 
-        self.project_path = os.getcwd()
+        self.app_state_manager = AppStateManager()
+        self.app_state = self.app_state_manager.load()
+        self.project_path = self._startup_project_path()
         ensure_tool_dir(self.project_path)
         self.config_manager = ConfigManager(tool_file(self.project_path, "app_config.json"))
         self.config = self.config_manager.load()
@@ -224,6 +226,7 @@ class MainWindow(QMainWindow):
         self.git = GitService(self.project_path, self.log)
         self.log_file_path = self._make_log_file_path()
         protect_repository_dirs(self.project_path, self.log)
+        self.app_state_manager.save_last_project(self.project_path)
 
         self._build_ui()
         self.log_signal.connect(self._append_log)
@@ -610,6 +613,12 @@ class MainWindow(QMainWindow):
         log_dir = tool_file(self.project_path, "logs")
         return os.path.join(log_dir, f"tool_{datetime.now():%Y%m%d}.log")
 
+    def _startup_project_path(self):
+        last_path = self.app_state.get("last_project_path", "")
+        if last_path and os.path.isdir(last_path):
+            return os.path.realpath(last_path)
+        return os.getcwd()
+
     def _append_log(self, message):
         self.log_text.append(str(message))
         scrollbar = self.log_text.verticalScrollBar()
@@ -635,6 +644,8 @@ class MainWindow(QMainWindow):
         protect_repository_dirs(path, self.log)
         self.config_manager = ConfigManager(tool_file(path, "app_config.json"))
         self.config = self.config_manager.load()
+        self.app_state_manager.save_last_project(path)
+        self.app_state = self.app_state_manager.load()
         set_language(self.config.get("language", "zh_CN"))
         self.log_file_path = self._make_log_file_path()
         self.log(f"[Project] Selected {path}" if self.config.get("language") == "en_US" else f"[工程] 已选择 {path}")
@@ -1361,5 +1372,6 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, tr("设置"), tr("设置已保存。"))
 
     def closeEvent(self, event):
+        self.app_state_manager.save_last_project(self.project_path)
         self.thread_pool.waitForDone(1000)
         super().closeEvent(event)

@@ -117,14 +117,12 @@ class CompareDialog(QDialog):
         self.thread_pool.start(worker)
 
     def load_versions(self):
-        def apply(tags):
+        def apply(refs):
             self.base_combo.clear()
             self.target_combo.clear()
-            refs = tags[:]
-            if "HEAD" not in refs:
-                refs.insert(0, "HEAD")
-            self.base_combo.addItems(refs)
-            self.target_combo.addItems(refs)
+            for item in refs:
+                self.base_combo.addItem(item["label"], item["ref"])
+                self.target_combo.addItem(item["label"], item["ref"])
             if len(refs) > 1:
                 self.base_combo.setCurrentIndex(1)
                 self.target_combo.setCurrentIndex(0)
@@ -132,11 +130,18 @@ class CompareDialog(QDialog):
             else:
                 self.output.set_plain(tr("当前没有可对比的 tag。请先提交并发布至少一个版本，或使用 HEAD 与已有 tag 对比。"))
 
-        self.run_async(self.git.list_tags, on_finished=apply)
+        self.run_async(self.git.list_compare_refs, on_finished=apply)
+
+    @staticmethod
+    def selected_ref(combo):
+        ref = combo.currentData()
+        if ref:
+            return str(ref).strip()
+        return combo.currentText().strip()
 
     def selected_refs(self):
-        base = self.base_combo.currentText().strip()
-        target = self.target_combo.currentText().strip()
+        base = self.selected_ref(self.base_combo)
+        target = self.selected_ref(self.target_combo)
         if not base or not target:
             QMessageBox.information(self, tr("版本不足"), tr("请至少选择两个版本或 HEAD。"))
             self.output.set_plain(tr("请选择基准版本和目标版本。"))
