@@ -9,6 +9,7 @@ a = Analysis(
         ("templates", "templates"),
         ("LICENSE", "."),
         ("README.md", "."),
+        ("icn.png", "."),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -39,5 +40,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="icn.png",
     version="packaging/windows_version_info.txt",
 )

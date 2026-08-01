@@ -2,7 +2,7 @@
 
 All notable changes to STM32 Git Release Tool are documented here.
 
-## [1.1.0] - 2026-08-01
+## [1.2.0] - 2026-08-01
 
 ### Added
 
@@ -18,6 +18,8 @@ All notable changes to STM32 Git Release Tool are documented here.
 
 ### Changed
 
+- Updated the application title and Windows metadata to v1.2.0.
+- Added `icn.png` as the Windows executable and application window icon.
 - Version and history lists now show minute-level dates and descriptions.
 - History actions use the same structured version display as version
   comparison.

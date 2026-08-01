@@ -34,7 +34,7 @@ TRANSLATIONS = {
     "语言：切换界面语言。保存后，新打开的弹窗会使用新语言；重启工具后主界面全部生效。": "Language: Switch the UI language. After saving, newly opened dialogs use the new language; restart the tool to fully update the main window.",
     "保存按钮：保存当前配置到 .stm32_git_tool/app_config.json。": "Save button: Save the current configuration to .stm32_git_tool/app_config.json.",
     "取消按钮：放弃本次修改，不保存配置。": "Cancel button: Discard this change and keep the existing configuration.",
-    "FST-GIT发布工具V1.1": "FST-GIT Release Tool V1.1",
+    "FST-GIT发布工具V1.2": "FST-GIT Release Tool V1.2",
     "Git 版本管理 / 清理 / Release 打包": "Git Versioning / Cleanup / Release Packaging",
     "未检测": "Not Detected",
     "选择工程目录": "Select Project Folder",
@@ -187,7 +187,7 @@ TRANSLATIONS = {
 # Dialog help and runtime messages are kept here so English mode never falls
 # back to Chinese for content that is created after the main window starts.
 TRANSLATIONS.update({
-    "FST-GIT发布工具V1.1 操作说明": "FST-GIT Release Tool V1.1 Guide",
+    "FST-GIT发布工具V1.2 操作说明": "FST-GIT Release Tool V1.2 Guide",
     "备份分支说明": "Backup Branch Guide",
     "备份列表：显示 backup/ 开头的分支。它们通常由工具在强制回退前自动创建。": "Backup list: Shows branches starting with backup/. The tool normally creates them before a force reset.",
     "刷新按钮：重新读取备份分支列表。": "Refresh: Reload the backup branch list.",
@@ -349,7 +349,7 @@ TRANSLATIONS.update({
     "请输入 RESET 确认执行：": "Enter RESET to confirm:",
     "Git 仓库丢失": "Git Repository Missing",
     "选择要返回的分支：": "Select the branch to return to:",
-    "工具用途：FST-GIT发布工具V1.1 用于把 Git 初始化、提交、tag、Release 打包、回退、分支、清理、远程同步等操作封装成按钮，减少手写 Git 命令。": "Purpose: FST-GIT Release Tool V1.1 provides buttons for Git initialization, commits, tags, release packaging, rollback, branches, cleanup, and remote synchronization.",
+    "工具用途：FST-GIT发布工具V1.2 用于把 Git 初始化、提交、tag、Release 打包、回退、分支、清理、远程同步等操作封装成按钮，减少手写 Git 命令。": "Purpose: FST-GIT Release Tool V1.2 provides buttons for Git initialization, commits, tags, release packaging, rollback, branches, cleanup, and remote synchronization.",
     "请从下拉列表中选择一个有效版本点。": "Select a valid version point from the list.",
     "基本流程：选择工程目录 -> 初始化工程 -> 修改代码 -> 提交版本 -> 发布 Release -> Push + Tags 到远程仓库。": "Basic flow: Select Project Folder -> Initialize Project -> edit code -> Commit Version -> Publish Release -> Push + Tags.",
     "选择工程目录：左侧按钮。用于选择实际 STM32/Keil 工程根目录，不是选择远程仓库地址。选择后左侧会显示工程路径、分支、当前 tag 和工作区状态。": "Select Project Folder: Select the actual STM32/Keil project root, not a remote repository URL. The path, branch, current tag, and workspace status appear on the left.",

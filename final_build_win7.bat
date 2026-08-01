@@ -14,6 +14,7 @@ set "VERSION_FILE=%PROJECT_DIR%\packaging\windows_version_info.txt"
 set "TEMPLATE_DIR=%PROJECT_DIR%\templates"
 set "README_FILE=%PROJECT_DIR%\README.md"
 set "LICENSE_FILE=%PROJECT_DIR%\LICENSE"
+set "ICON_FILE=%PROJECT_DIR%\icn.png"
 set "VENV_DIR=%PROJECT_DIR%\.win7_build_env"
 set "VENV_PYTHON=%VENV_DIR%\Scripts\python.exe"
 set "BUILD_DIR=%PROJECT_DIR%\win7_build"
@@ -38,6 +39,7 @@ if not exist "%VERSION_FILE%" goto missing_version
 if not exist "%TEMPLATE_DIR%" goto missing_templates
 if not exist "%README_FILE%" goto missing_readme
 if not exist "%LICENSE_FILE%" goto missing_license
+if not exist "%ICON_FILE%" goto missing_icon
 echo [OK] Project files found.
 echo.
 
@@ -65,16 +67,16 @@ if errorlevel 1 goto pip_tools_failed
 
 if exist "%WHEEL_DIR%" (
     echo Local wheel folder detected: %WHEEL_DIR%
-    "%VENV_PYTHON%" -m pip install --no-index --find-links="%WHEEL_DIR%" PyQt5==5.15.2 PyQt5-Qt5==5.15.2 PyQt5-sip==12.13.0 PyInstaller==4.10
+    "%VENV_PYTHON%" -m pip install --no-index --find-links="%WHEEL_DIR%" PyQt5==5.15.2 PyQt5-Qt5==5.15.2 PyQt5-sip==12.13.0 Pillow==10.4.0 PyInstaller==4.10
 ) else (
     echo No win7_wheels folder found. Installing from PyPI...
-    "%VENV_PYTHON%" -m pip install --only-binary=:all: PyQt5==5.15.2 PyQt5-Qt5==5.15.2 PyQt5-sip==12.13.0
+    "%VENV_PYTHON%" -m pip install --only-binary=:all: PyQt5==5.15.2 PyQt5-Qt5==5.15.2 PyQt5-sip==12.13.0 Pillow==10.4.0
     if errorlevel 1 goto pyqt_failed
     "%VENV_PYTHON%" -m pip install PyInstaller==4.10
 )
 if errorlevel 1 goto dependency_failed
 
-"%VENV_PYTHON%" -c "import PyQt5.QtCore as q; import PyInstaller; print('PyQt5:',q.PYQT_VERSION_STR,'Qt:',q.QT_VERSION_STR); print('PyInstaller:',PyInstaller.__version__)"
+"%VENV_PYTHON%" -c "import PyQt5.QtCore as q; import PyInstaller, PIL; print('PyQt5:',q.PYQT_VERSION_STR,'Qt:',q.QT_VERSION_STR); print('PyInstaller:',PyInstaller.__version__,'Pillow:',PIL.__version__)"
 if errorlevel 1 goto dependency_failed
 "%VENV_PYTHON%" -c "from ui.main_window import MainWindow; print('Application import preflight: OK')"
 if errorlevel 1 goto source_compatibility_failed
@@ -112,9 +114,11 @@ mkdir "%SPEC_DIR%" >nul 2>&1
     --workpath "%BUILD_DIR%" ^
     --specpath "%SPEC_DIR%" ^
     --version-file "%VERSION_FILE%" ^
+    --icon "%ICON_FILE%" ^
     --add-data "%TEMPLATE_DIR%;templates" ^
     --add-data "%README_FILE%;." ^
     --add-data "%LICENSE_FILE%;." ^
+    --add-data "%ICON_FILE%;." ^
     "%MAIN_FILE%"
 if errorlevel 1 goto build_failed
 if not exist "%BUILT_EXE%" goto output_missing
@@ -175,6 +179,10 @@ goto failed
 
 :missing_license
 echo [FAIL] LICENSE was not found: %LICENSE_FILE%
+goto failed
+
+:missing_icon
+echo [FAIL] Icon file was not found: %ICON_FILE%
 goto failed
 
 :missing_python

@@ -66,6 +66,7 @@ Fixed legacy build versions:
 - PyQt5 5.15.2
 - PyQt5-Qt5 5.15.2
 - PyQt5-sip 12.13.0
+- Pillow 10.4.0
 - PyInstaller 4.10
 
 For offline building, place all required wheels in a `win7_wheels` directory
@@ -161,8 +162,8 @@ release packaging, local remote push, and clone recovery.
 
 ## Current Release
 
-The current release is `v1.1.0`. The application title displays
-`V1.1`, while Windows file metadata uses the full semantic version `1.1.0`.
+The current release is `v1.2.0`. The application title displays
+`V1.2`, while Windows file metadata uses the full semantic version `1.2.0`.
 See [CHANGELOG.md](./CHANGELOG.md) for release details.
 
 ## Known Limitations

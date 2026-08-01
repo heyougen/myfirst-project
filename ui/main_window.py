@@ -209,7 +209,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(tr("FST-GIT发布工具V1.1"))
+        self.setWindowTitle(tr("FST-GIT发布工具V1.2"))
         self.resize(1000, 580)
         self.setStyleSheet(MAC_STYLE)
 
@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
         self.config_manager = ConfigManager(tool_file(self.project_path, "app_config.json"))
         self.config = self.config_manager.load()
         set_language(self.config.get("language", "zh_CN"))
-        self.setWindowTitle(tr("FST-GIT发布工具V1.1"))
+        self.setWindowTitle(tr("FST-GIT发布工具V1.2"))
         self.git = GitService(self.project_path, self.log)
         self.log_file_path = self._make_log_file_path()
         protect_repository_dirs(self.project_path, self.log)
@@ -259,7 +259,7 @@ class MainWindow(QMainWindow):
         side.setContentsMargins(10, 10, 10, 10)
         side.setSpacing(5)
 
-        self.title_label = QLabel(tr("FST-GIT发布工具V1.1"))
+        self.title_label = QLabel(tr("FST-GIT发布工具V1.2"))
         self.title_label.setObjectName("TitleLabel")
         self.subtitle_label = QLabel(tr("Git 版本管理 / 清理 / Release 打包"))
         self.subtitle_label.setObjectName("MutedLabel")
@@ -562,7 +562,7 @@ class MainWindow(QMainWindow):
         self.settings_button.setObjectName("PrimaryButton")
         self.cleanup_history_cache_button = QPushButton(tr("清理历史缓存"))
         self.cleanup_history_cache_button.setObjectName("DangerButton")
-        self.help_button = make_help_box("FST-GIT发布工具V1.1 操作说明", self._main_help_steps())
+        self.help_button = make_help_box("FST-GIT发布工具V1.2 操作说明", self._main_help_steps())
 
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
@@ -599,7 +599,7 @@ class MainWindow(QMainWindow):
 
     def _main_help_steps(self):
         return [
-            "工具用途：FST-GIT发布工具V1.1 用于把 Git 初始化、提交、tag、Release 打包、回退、分支、清理、远程同步等操作封装成按钮，减少手写 Git 命令。",
+            "工具用途：FST-GIT发布工具V1.2 用于把 Git 初始化、提交、tag、Release 打包、回退、分支、清理、远程同步等操作封装成按钮，减少手写 Git 命令。",
             "基本流程：选择工程目录 -> 初始化工程 -> 修改代码 -> 提交版本 -> 发布 Release -> Push + Tags 到远程仓库。",
             "选择工程目录：左侧按钮。用于选择实际 STM32/Keil 工程根目录，不是选择远程仓库地址。选择后左侧会显示工程路径、分支、当前 tag 和工作区状态。",
             "刷新状态：重新读取当前工程的 Git 状态、分支、tag 和工作区是否干净。当你手动改文件、切换分支或外部执行 Git 后，可点击刷新。",
@@ -1324,8 +1324,8 @@ class MainWindow(QMainWindow):
         scrollbar.setValue(scrollbar.maximum())
 
     def _retranslate_ui(self):
-        self.setWindowTitle(tr("FST-GIT发布工具V1.1"))
-        self.title_label.setText(tr("FST-GIT发布工具V1.1"))
+        self.setWindowTitle(tr("FST-GIT发布工具V1.2"))
+        self.title_label.setText(tr("FST-GIT发布工具V1.2"))
         self.subtitle_label.setText(tr("Git 版本管理 / 清理 / Release 打包"))
         self.repo_label.setText(tr(self.last_repo_text))
         self.select_path_button.setText(tr("选择工程目录"))
@@ -1388,7 +1388,7 @@ class MainWindow(QMainWindow):
         self.settings_desc_label.setText(tr("配置固件目录、发布目录、源码目录、排除规则和远程地址。"))
         self.language_combo_main.setToolTip(tr("界面语言"))
         self.help_button.setText(tr("操作说明"))
-        self.help_button.setToolTip(tr("FST-GIT发布工具V1.1 操作说明"))
+        self.help_button.setToolTip(tr("FST-GIT发布工具V1.2 操作说明"))
         self._update_git_dirs_button()
 
     def apply_language(self, _index=None):
