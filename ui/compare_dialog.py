@@ -46,8 +46,8 @@ class CompareDialog(QDialog):
         self.direction_label.setStyleSheet("color:#6e6e73; padding:2px 0; font-weight:600;")
 
         form = QFormLayout()
-        form.addRow(tr("基准版本"), self.base_combo)
-        form.addRow(tr("目标版本"), self.target_combo)
+        form.addRow(tr("旧版本"), self.base_combo)
+        form.addRow(tr("新版本"), self.target_combo)
 
         row = QHBoxLayout()
         for button in [
@@ -63,10 +63,10 @@ class CompareDialog(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addWidget(make_help_box("版本对比说明", [
-            "基准版本下拉框：选择旧版本，可以搜索 tag、commit、日期和修改说明。",
-            "目标版本下拉框：选择新版本。对比结果表示从基准版本到目标版本发生的变化。",
+            "旧版本下拉框：选择变更前的版本，可以搜索 tag、commit、日期和修改说明。",
+            "新版本下拉框：选择变更后的版本。对比结果表示从旧版本到新版本发生的变化。",
             "刷新版本按钮：重新读取 tag 列表。新增 tag 或切换工程后使用。",
-            "交换按钮：交换基准版本和目标版本，方便反向查看差异。",
+            "交换按钮：交换旧版本和新版本，方便反向查看差异。",
             "文件变更统计按钮：显示变更文件列表和每个文件的增删行统计，适合先判断影响范围。",
             "提交差异按钮：显示两个版本之间包含哪些 commit，适合整理版本说明。",
             "代码 Diff 按钮：按文件展示源码和工程配置差异，过滤 bin、hex、map、o 等固件和编译产物。",
@@ -100,7 +100,7 @@ class CompareDialog(QDialog):
         base = self.base_combo.currentText().strip() or "-"
         target = self.target_combo.currentText().strip() or "-"
         self.direction_label.setText(
-            f"{tr('基准版本')}: {base} -> {tr('目标版本')}: {target}"
+            f"{tr('旧版本')}: {base} -> {tr('新版本')}: {target}"
         )
 
     def set_busy(self, busy):
@@ -144,11 +144,11 @@ class CompareDialog(QDialog):
         target = self.selected_ref(self.target_combo)
         if not base or not target:
             QMessageBox.information(self, tr("版本不足"), tr("请至少选择两个版本或 HEAD。"))
-            self.output.set_plain(tr("请选择基准版本和目标版本。"))
+            self.output.set_plain(tr("请选择旧版本和新版本。"))
             return "", ""
         if base == target:
-            QMessageBox.information(self, tr("版本相同"), tr("基准版本和目标版本相同，没有可对比内容。"))
-            self.output.set_plain(tr("基准版本和目标版本相同，没有可对比内容。"))
+            QMessageBox.information(self, tr("版本相同"), tr("旧版本和新版本相同，没有可对比内容。"))
+            self.output.set_plain(tr("旧版本和新版本相同，没有可对比内容。"))
             return "", ""
         return base, target
 

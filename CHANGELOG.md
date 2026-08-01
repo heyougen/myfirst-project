@@ -30,6 +30,8 @@ All notable changes to STM32 Git Release Tool are documented here.
 - Prevented stale search text from leaving version drop-down arrows empty.
 - Prevented main-window checkout/reset actions from using a previously selected
   ref when the visible search text has not been selected.
+- Unified version-comparison terminology as old version/new version and old
+  line/new line.
 - Stabilized project-comparison progress updates by keeping a determinate,
   monotonic percentage.
 
