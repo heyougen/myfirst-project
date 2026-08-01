@@ -66,9 +66,9 @@ class DirectoryComparer:
     def compare(self, cancel_token: Optional[CancellationToken] = None, progress_callback=None) -> Dict[str, Any]:
         self._validate()
         self._last_progress_percent = None
-        self._progress(progress_callback, 2, "正在扫描基准工程")
+        self._progress(progress_callback, 2, "正在扫描旧工程")
         base_files, base_errors = self._scan(self.base_dir, cancel_token, progress_callback)
-        self._progress(progress_callback, 6, "正在扫描目标工程")
+        self._progress(progress_callback, 6, "正在扫描新工程")
         target_files, target_errors = self._scan(self.target_dir, cancel_token, progress_callback)
         base_paths = set(base_files)
         target_paths = set(target_files)
@@ -226,8 +226,8 @@ class DirectoryComparer:
 
     def summary(self, result: Dict[str, Any]) -> str:
         return (
-            f"基准工程: {result['base_dir']}\n"
-            f"目标工程: {result['target_dir']}\n"
+            f"旧工程: {result['base_dir']}\n"
+            f"新工程: {result['target_dir']}\n"
             f"新增: {len(result['added'])}  删除: {len(result['removed'])}  "
             f"修改: {len(result['modified'])}  改名: {len(result.get('renamed', []))}  "
             f"相同: {result['same_count']}  "
@@ -304,17 +304,17 @@ class DirectoryComparer:
 
     def _validate(self) -> None:
         if not os.path.isdir(self.base_dir):
-            raise FileNotFoundError(f"基准工程目录不存在：{self.base_dir}")
+            raise FileNotFoundError(f"旧工程目录不存在：{self.base_dir}")
         if not os.path.isdir(self.target_dir):
-            raise FileNotFoundError(f"目标工程目录不存在：{self.target_dir}")
+            raise FileNotFoundError(f"新工程目录不存在：{self.target_dir}")
         if os.path.normcase(self.base_dir) == os.path.normcase(self.target_dir):
-            raise ValueError("基准工程和目标工程不能是同一个目录。")
+            raise ValueError("旧工程和新工程不能是同一个目录。")
         try:
             common = os.path.normcase(os.path.commonpath([self.base_dir, self.target_dir]))
         except ValueError:
             common = ""
         if common in {os.path.normcase(self.base_dir), os.path.normcase(self.target_dir)}:
-            raise ValueError("基准工程和目标工程不能互相包含，请选择两个独立工程目录。")
+            raise ValueError("旧工程和新工程不能互相包含，请选择两个独立工程目录。")
 
     def _scan(
         self,

@@ -46,8 +46,8 @@ class ProjectCompareDialog(QDialog):
 
         self.base_input = QLineEdit(os.path.realpath(current_project))
         self.target_input = QLineEdit()
-        self.base_button = QPushButton(tr("选择基准工程"))
-        self.target_button = QPushButton(tr("选择目标工程"))
+        self.base_button = QPushButton(tr("选择旧工程"))
+        self.target_button = QPushButton(tr("选择新工程"))
         self.swap_button = QPushButton(tr("交换"))
         self.compare_button = QPushButton(tr("开始对比"))
         self.compare_button.setObjectName("PrimaryButton")
@@ -97,8 +97,8 @@ class ProjectCompareDialog(QDialog):
         target_row.addWidget(self.target_button)
 
         form = QFormLayout()
-        form.addRow(tr("基准工程"), base_row)
-        form.addRow(tr("目标工程"), target_row)
+        form.addRow(tr("旧工程"), base_row)
+        form.addRow(tr("新工程"), target_row)
 
         actions = QHBoxLayout()
         actions.addWidget(self.swap_button)
@@ -128,7 +128,7 @@ class ProjectCompareDialog(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addWidget(make_help_box("工程对比说明", [
-            "基准工程和目标工程可以是任意两个目录，不要求存在 Git 仓库。",
+            "旧工程和新工程可以是任意两个目录，不要求存在 Git 仓库。对比结果表示从旧工程到新工程发生的变化。",
             "默认忽略 .git、.stm32_git_tool、Debug、Objects、Listings、build 和设置中的排除规则。",
             "文本源码按行显示 Diff；bin、hex 等二进制文件只比较大小和 SHA-256。",
             "完成一次扫描后，可以按变更类型和文件类型筛选，不会重复扫描工程。",
@@ -246,7 +246,7 @@ class ProjectCompareDialog(QDialog):
         base_dir = self.base_input.text().strip()
         target_dir = self.target_input.text().strip()
         if not base_dir or not target_dir:
-            QMessageBox.information(self, tr("缺少工程目录"), tr("请选择基准工程和目标工程。"))
+            QMessageBox.information(self, tr("缺少工程目录"), tr("请选择旧工程和新工程。"))
             return
 
         self.clear_result()
