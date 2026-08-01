@@ -13,8 +13,12 @@ The interface can switch between Simplified Chinese and English at runtime.
 - Commit meaningful project files while filtering build artifacts and caches.
 - Create release tags and ZIP packages containing source and firmware files.
 - Inspect commit history and source-oriented diffs.
-- Compare two tags or `HEAD` in a clear base-to-target direction.
+- Search and compare tags, commits, or `HEAD` in a clear base-to-target direction.
+- Compare any two local project folders without requiring a Git repository.
+- Filter folder differences by change type, file type, name, and extension.
+- Track long folder comparisons with progress and cooperative cancellation.
 - Create, switch, merge, and delete branches.
+- Delete a local tag or the latest unpublished commit with guarded confirmation.
 - Create recovery branches before destructive reset operations.
 - Clean Keil build artifacts such as `Debug/`, `Objects/`, `Listings/`,
   `*.map`, `*.axf`, `*.o`, and `*.d`.
@@ -157,8 +161,8 @@ release packaging, local remote push, and clone recovery.
 
 ## Current Release
 
-The current stable release is `v1.0.0`. The application title displays
-`V1.0`, while Windows file metadata uses the full semantic version `1.0.0`.
+The current release is `v1.1.0`. The application title displays
+`V1.1`, while Windows file metadata uses the full semantic version `1.1.0`.
 See [CHANGELOG.md](./CHANGELOG.md) for release details.
 
 ## Known Limitations
@@ -179,7 +183,9 @@ STM32 Git Release Tool 是面向 STM32、Keil MDK 和 STM32CubeMX 工程的 Wind
 - 初始化 Git 工程并生成 STM32 忽略规则
 - 过滤编译产物后提交有效源码
 - 创建版本 tag 和 Release ZIP
-- 查看历史、代码 Diff 和版本对比
+- 搜索 tag、commit、日期和修改说明，查看历史、代码 Diff 和版本对比
+- 对比任意两个本地工程，支持筛选、改名识别、进度和取消
+- 二次确认后删除本地 tag 或最新的未发布 commit
 - 管理分支、备份分支和安全恢复
 - 清理 Keil 编译缓存
 - Pull、Push、Push Tags、验证远程和克隆

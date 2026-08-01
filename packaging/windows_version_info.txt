@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 0, 0, 0),
-    prodvers=(1, 0, 0, 0),
+    filevers=(1, 1, 0, 0),
+    prodvers=(1, 1, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,12 +16,12 @@ VSVersionInfo(
         [
           StringStruct(u'CompanyName', u'FST'),
           StringStruct(u'FileDescription', u'STM32 Git Release Tool'),
-          StringStruct(u'FileVersion', u'1.0.0'),
+          StringStruct(u'FileVersion', u'1.1.0'),
           StringStruct(u'InternalName', u'STM32GitReleaseTool'),
           StringStruct(u'LegalCopyright', u'Copyright (c) 2026'),
           StringStruct(u'OriginalFilename', u'STM32GitReleaseTool.exe'),
           StringStruct(u'ProductName', u'STM32 Git Release Tool'),
-          StringStruct(u'ProductVersion', u'1.0.0')
+          StringStruct(u'ProductVersion', u'1.1.0')
         ]
       )
     ]),

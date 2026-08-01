@@ -2,6 +2,37 @@
 
 All notable changes to STM32 Git Release Tool are documented here.
 
+## [1.1.0] - 2026-08-01
+
+### Added
+
+- Searchable version points across the main window, history, and version
+  comparison views, including tags, commits, dates, and descriptions.
+- Comparison between any two local project folders without requiring Git.
+- Project comparison filters for status, file type, filename, extension, and
+  temporary exclusions.
+- Progress reporting, cooperative cancellation, and same-content rename
+  detection for project comparison.
+- Guarded deletion of local tags and the latest unpublished commit.
+- Developer recovery password support for protected reset operations.
+
+### Changed
+
+- Version and history lists now show minute-level dates and descriptions.
+- History actions use the same structured version display as version
+  comparison.
+- Detached-HEAD commits and resets now create normal recovery/work branches.
+- The current project path and selected version point are restored more
+  consistently.
+
+### Fixed
+
+- Prevented stale search text from leaving version drop-down arrows empty.
+- Prevented main-window checkout/reset actions from using a previously selected
+  ref when the visible search text has not been selected.
+- Stabilized project-comparison progress updates by keeping a determinate,
+  monotonic percentage.
+
 ## [1.0.0] - 2026-06-27
 
 ### Added

@@ -43,7 +43,9 @@ try:
     from ui.compare_dialog import CompareDialog
     from ui.help_widgets import make_help_box
     from ui.history_dialog import HistoryDialog
+    from ui.project_compare_dialog import ProjectCompareDialog
     from ui.settings_dialog import SettingsDialog
+    from ui.version_ref_combo import VersionRefComboBox
 except ModuleNotFoundError:
     from stm32_git_release_tool.core.backup_manager import BackupManager
     from stm32_git_release_tool.core.config_manager import AppStateManager, ConfigManager
@@ -64,7 +66,9 @@ except ModuleNotFoundError:
     from stm32_git_release_tool.ui.compare_dialog import CompareDialog
     from stm32_git_release_tool.ui.help_widgets import make_help_box
     from stm32_git_release_tool.ui.history_dialog import HistoryDialog
+    from stm32_git_release_tool.ui.project_compare_dialog import ProjectCompareDialog
     from stm32_git_release_tool.ui.settings_dialog import SettingsDialog
+    from stm32_git_release_tool.ui.version_ref_combo import VersionRefComboBox
 
 
 STM32_GITIGNORE_LINES = [
@@ -205,14 +209,22 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(tr("FST-GIT发布工具V1.0"))
+        self.setWindowTitle(tr("FST-GIT发布工具V1.1"))
         self.resize(1000, 580)
         self.setStyleSheet(MAC_STYLE)
 
         self.thread_pool = QThreadPool.globalInstance()
         self.busy_count = 0
         self.last_repo_text = tr("未检测")
-        self.last_status = {"repo": False, "branch": "-", "tag": "-", "dirty": "-", "tags": []}
+        self.last_status = {
+            "repo": False,
+            "branch": "-",
+            "tag": "-",
+            "dirty": "-",
+            "refs": [],
+            "current_ref": "",
+            "current_commit": "",
+        }
         self.action_buttons = []
 
         self.app_state_manager = AppStateManager()
@@ -222,7 +234,7 @@ class MainWindow(QMainWindow):
         self.config_manager = ConfigManager(tool_file(self.project_path, "app_config.json"))
         self.config = self.config_manager.load()
         set_language(self.config.get("language", "zh_CN"))
-        self.setWindowTitle(tr("FST-GIT发布工具V1.0"))
+        self.setWindowTitle(tr("FST-GIT发布工具V1.1"))
         self.git = GitService(self.project_path, self.log)
         self.log_file_path = self._make_log_file_path()
         protect_repository_dirs(self.project_path, self.log)
@@ -247,7 +259,7 @@ class MainWindow(QMainWindow):
         side.setContentsMargins(10, 10, 10, 10)
         side.setSpacing(5)
 
-        self.title_label = QLabel(tr("FST-GIT发布工具V1.0"))
+        self.title_label = QLabel(tr("FST-GIT发布工具V1.1"))
         self.title_label.setObjectName("TitleLabel")
         self.subtitle_label = QLabel(tr("Git 版本管理 / 清理 / Release 打包"))
         self.subtitle_label.setObjectName("MutedLabel")
@@ -309,6 +321,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_branch_tab(), tr("分支管理"))
         self.tabs.addTab(self._build_history_tab(), tr("历史记录"))
         self.tabs.addTab(self._build_compare_tab(), tr("版本对比"))
+        self.tabs.addTab(self._build_project_compare_tab(), tr("工程对比"))
         self.tabs.addTab(self._build_clean_tab(), tr("工程清理"))
         self.tabs.addTab(self._build_remote_tab(), tr("远程同步"))
         self.tabs.addTab(self._build_settings_tab(), tr("设置"))
@@ -365,10 +378,10 @@ class MainWindow(QMainWindow):
         self.version_input.setPlaceholderText(tr("例如 v1.2"))
         self.desc_input = QLineEdit()
         self.desc_input.setPlaceholderText(tr("修改说明，例如 修复串口通信问题"))
-        self.tag_combo = QComboBox()
+        self.tag_combo = VersionRefComboBox()
         self.version_title_label = QLabel(tr("版本号"))
         self.desc_title_label = QLabel(tr("修改说明"))
-        self.tag_select_title_label = QLabel(tr("选择 tag"))
+        self.tag_select_title_label = QLabel(tr("选择版本点"))
         form.addRow(self.version_title_label, self.version_input)
         form.addRow(self.desc_title_label, self.desc_input)
         form.addRow(self.tag_select_title_label, self.tag_combo)
@@ -383,8 +396,8 @@ class MainWindow(QMainWindow):
         self.release_button = QPushButton(tr("发布 Release"))
         self.release_button.setObjectName("PrimaryButton")
         self.package_button = QPushButton(tr("一键打包"))
-        self.checkout_tag_button = QPushButton(tr("查看历史版本"))
-        self.reset_tag_button = QPushButton(tr("强制回退到 tag"))
+        self.checkout_tag_button = QPushButton(tr("查看此版本"))
+        self.reset_tag_button = QPushButton(tr("强制回退到此版本"))
         self.reset_tag_button.setObjectName("DangerButton")
         for index, button in enumerate(
             [
@@ -458,6 +471,21 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.compare_box)
         self.open_compare_button.clicked.connect(self.open_compare_dialog)
         self.action_buttons.append(self.open_compare_button)
+        return widget
+
+    def _build_project_compare_tab(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(2, 2, 2, 2)
+        self.project_compare_box, box_layout = self._card(tr("任意工程目录不同点"))
+        self.open_project_compare_button = QPushButton(tr("打开工程对比"))
+        self.open_project_compare_button.setObjectName("PrimaryButton")
+        self.project_compare_desc_label = QLabel(tr("选择任意两个工程目录，不依赖 Git，比较文件新增、删除、修改和代码 Diff。"))
+        box_layout.addWidget(self.project_compare_desc_label)
+        box_layout.addWidget(self.open_project_compare_button)
+        layout.addWidget(self.project_compare_box)
+        self.open_project_compare_button.clicked.connect(self.open_project_compare_dialog)
+        self.action_buttons.append(self.open_project_compare_button)
         return widget
 
     def _build_clean_tab(self):
@@ -534,7 +562,7 @@ class MainWindow(QMainWindow):
         self.settings_button.setObjectName("PrimaryButton")
         self.cleanup_history_cache_button = QPushButton(tr("清理历史缓存"))
         self.cleanup_history_cache_button.setObjectName("DangerButton")
-        self.help_button = make_help_box("FST-GIT发布工具V1.0 操作说明", self._main_help_steps())
+        self.help_button = make_help_box("FST-GIT发布工具V1.1 操作说明", self._main_help_steps())
 
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
@@ -571,7 +599,7 @@ class MainWindow(QMainWindow):
 
     def _main_help_steps(self):
         return [
-            "工具用途：FST-GIT发布工具V1.0 用于把 Git 初始化、提交、tag、Release 打包、回退、分支、清理、远程同步等操作封装成按钮，减少手写 Git 命令。",
+            "工具用途：FST-GIT发布工具V1.1 用于把 Git 初始化、提交、tag、Release 打包、回退、分支、清理、远程同步等操作封装成按钮，减少手写 Git 命令。",
             "基本流程：选择工程目录 -> 初始化工程 -> 修改代码 -> 提交版本 -> 发布 Release -> Push + Tags 到远程仓库。",
             "选择工程目录：左侧按钮。用于选择实际 STM32/Keil 工程根目录，不是选择远程仓库地址。选择后左侧会显示工程路径、分支、当前 tag 和工作区状态。",
             "刷新状态：重新读取当前工程的 Git 状态、分支、tag 和工作区是否干净。当你手动改文件、切换分支或外部执行 Git 后，可点击刷新。",
@@ -583,15 +611,16 @@ class MainWindow(QMainWindow):
             "显示/隐藏 Git目录：切换 .git 和 .stm32_git_tool 的隐藏/系统属性。需要手动查看目录时点“显示”，平时建议保持隐藏减少误删。",
             "版本号输入框：填写本次版本号，例如 v1.0、v1.1。发布 Release 时会作为 Git tag，不能和已有 tag 重复。",
             "修改说明输入框：填写本次修改内容。提交版本时会进入 commit message，发布包中也会写入 ReleaseNote。",
-            "选择 tag 下拉框：显示已有 tag。用于查看历史版本或强制回退到 tag。",
+            "选择版本点下拉框：显示已有 tag 和全部 commit，可按版本号、日期或修改说明搜索。未发布的中间版本也可以直接查看或回退。",
             "提交版本：提交有效工程文件。工具会过滤 Keil 缓存、编译产物、日志、工具数据；提交前会弹出文件列表让你确认。",
             "发布 Release：正式发布版本。发布前会检查是否在正常分支、是否有未提交工程修改、tag 是否重复、是否找到 bin/hex 固件。通过后创建 tag 并生成 Release zip。",
             "一键打包：只生成 zip 发布包，不创建 tag，不代表正式发布。适合临时测试包。",
-            "查看历史版本：切换到选中 tag 查看旧版本文件。它只是查看，不是回退；查看后需要用“返回分支”回到正常开发分支。",
-            "强制回退到 tag：危险操作，会把当前工程恢复到选中 tag。执行前会检查未提交修改，要求保护密码和 RESET 确认，并自动创建 backup 分支。",
+            "查看此版本：切换到选中的 tag 或 commit 查看旧版本文件。它只是查看，不是回退；查看后可以返回分支或直接执行强制回退。",
+            "强制回退到此版本：把工程恢复到选中的 tag 或 commit。工具会检查未提交修改、要求保护密码和 RESET 确认，并自动创建 backup 分支。",
             "分支管理：打开分支弹窗，可创建、切换、删除、强制删除和合并分支。新功能建议先建分支，完成后合并回主分支。",
             "历史记录：打开提交历史弹窗，可查看 commit、代码 Diff、保存完整 Diff、安全回滚 Revert、强制回退 Reset。优先使用 Revert，只有需要整体恢复旧状态时才用 Reset。",
             "版本对比：选择基准版本和目标版本，查看文件统计、提交差异、代码 Diff。绿色代表新增，红色代表删除，黄色代表代码位置提示。",
+            "工程对比：选择任意两个本地工程目录，不依赖 Git，支持进度和取消、文件筛选、临时排除、改名识别和差异报告导出。",
             "工程清理：扫描并删除 Debug、Objects、Listings、map、axf、o、d 等编译产物。不会删除 .git、.stm32_git_tool 或源码文件。",
             "远程同步：先在设置里填写远程地址，再应用远程地址。Pull 拉取远程更新，Push 推送当前分支，Push + Tags 推送分支和 tag。",
             "设置：配置项目类型、固件目录、发布目录、源码目录、排除目录、排除文件、产物规则和远程地址。发布目录建议保持 .stm32_git_tool/releases。",
@@ -669,13 +698,24 @@ class MainWindow(QMainWindow):
 
         def task():
             if not self.git.is_repository():
-                return {"repo": False, "branch": "-", "tag": "-", "dirty": "-", "tags": []}
+                return {
+                    "repo": False,
+                    "branch": "-",
+                    "tag": "-",
+                    "dirty": "-",
+                    "refs": [],
+                    "current_ref": "",
+                    "current_commit": "",
+                }
+            current_tag = self.git.current_tag()
             return {
                 "repo": True,
                 "branch": self.git.current_branch(),
-                "tag": self.git.current_tag() or "-",
+                "tag": current_tag or "-",
                 "dirty": ("Meaningful changes" if self.config.get("language") == "en_US" else "有有效工程改动") if self.git.meaningful_changed_files() else ("Clean" if self.config.get("language") == "en_US" else "干净"),
-                "tags": self.git.list_tags(),
+                "refs": [item for item in self.git.list_compare_refs() if item["kind"] != "head"],
+                "current_ref": current_tag,
+                "current_commit": self.git.resolve_commit("HEAD"),
             }
 
         worker = TaskWorker(task)
@@ -690,13 +730,12 @@ class MainWindow(QMainWindow):
         self.branch_label.setText(status["branch"])
         self.tag_label.setText(status["tag"])
         self.dirty_label.setText(status["dirty"])
-        current = self.tag_combo.currentText()
-        self.tag_combo.clear()
-        self.tag_combo.addItems(status["tags"])
-        if current:
-            index = self.tag_combo.findText(current)
-            if index >= 0:
-                self.tag_combo.setCurrentIndex(index)
+        self.tag_combo.set_refs(status["refs"])
+        for current_ref in [status.get("current_ref"), status.get("current_commit")]:
+            if not current_ref:
+                continue
+            if self.tag_combo.set_current_ref(current_ref):
+                break
         if not status["repo"]:
             self.log("[提示] 当前目录没有 .git，可点击“初始化工程”。")
         self._update_return_branch_button()
@@ -803,7 +842,12 @@ class MainWindow(QMainWindow):
         if not self._require_repository():
             return
         if self.git.current_branch() == "(detached)":
-            self.create_work_branch_then("提交版本", version, self.commit_version)
+            self.create_work_branch_then(
+                "提交版本",
+                version,
+                self.commit_version,
+                prompt_for_name=False,
+            )
             return
         desc = self.desc_input.text().strip() or "update"
         message = f"{version} - {desc}"
@@ -905,7 +949,7 @@ class MainWindow(QMainWindow):
 
         self.run_async(task, refresh=True)
 
-    def create_work_branch_then(self, action_name, version, continue_action):
+    def create_work_branch_then(self, action_name, version, continue_action, prompt_for_name=True):
         branches = set(self.git.list_branches())
         base_name = f"work/{version}"
         branch_name = base_name
@@ -914,17 +958,22 @@ class MainWindow(QMainWindow):
             suffix += 1
             branch_name = f"{base_name}-{suffix}"
 
-        branch, ok = QInputDialog.getText(
-            self,
-            tr("创建工作分支后") + tr(action_name),
-            tr("当前处于历史查看模式 detached HEAD，不能直接提交或发布。\n"
-            "工具将基于当前代码位置创建一个正常分支，然后自动继续刚才的操作。\n\n"
-            "请输入新分支名："),
-            text=branch_name,
-        )
-        branch = branch.strip()
-        if not ok:
-            return
+        if prompt_for_name:
+            branch, ok = QInputDialog.getText(
+                self,
+                tr("创建工作分支后") + tr(action_name),
+                tr("当前处于历史查看模式 detached HEAD，不能直接提交或发布。\n"
+                "工具将基于当前代码位置创建一个正常分支，然后自动继续刚才的操作。\n\n"
+                "请输入新分支名："),
+                text=branch_name,
+            )
+            branch = branch.strip()
+            if not ok:
+                return
+        else:
+            branch = branch_name
+            self.log(f"[自动创建工作分支] {branch}")
+
         if not branch:
             QMessageBox.warning(self, tr("分支名不能为空"), tr("请输入一个分支名。"))
             return
@@ -1042,34 +1091,35 @@ class MainWindow(QMainWindow):
     def checkout_tag(self):
         if not self._require_repository():
             return
-        tag = self.tag_combo.currentText().strip()
-        if not tag:
-            QMessageBox.information(self, tr("没有 tag"), tr("当前没有可选择的 tag。"))
+        ref = self.tag_combo.current_ref()
+        if not ref:
+            QMessageBox.information(self, tr("没有版本点"), tr("请从下拉列表中选择一个有效版本点。"))
             return
         self._check_dirty_then(
-            lambda: self.git.checkout_force(tag),
-            "当前存在未提交修改，仍要 checkout 到 tag 吗？",
+            lambda: self.git.checkout_force(str(ref)),
+            "当前存在未提交修改，仍要切换到所选版本点吗？",
             block_dirty=False,
         )
 
     def reset_tag(self):
         if not self._require_repository():
             return
-        tag = self.tag_combo.currentText().strip()
-        if not tag:
-            QMessageBox.information(self, tr("没有 tag"), tr("当前没有可选择的 tag。"))
+        ref = self.tag_combo.current_ref()
+        if not ref:
+            QMessageBox.information(self, tr("没有版本点"), tr("请从下拉列表中选择一个有效版本点。"))
             return
+        target_label = self.tag_combo.currentText().strip()
         current = self.git.current_tag() or self.git.current_branch()
         if QMessageBox.question(
             self,
             tr("危险操作"),
-            tr("确认强制回退？\n\n当前位置：{current}\n目标版本：{tag}\n\n工具会先创建 backup 分支，回退错误时可从“备份管理”恢复。", current=current, tag=tag),
+            tr("确认强制回退？\n\n当前位置：{current}\n目标版本：{tag}\n\n工具会先创建 backup 分支，回退错误时可从“备份管理”恢复。", current=current, tag=target_label),
         ) != QMessageBox.Yes:
             return
-        if not self.verify_dangerous_operation("强制回退到 tag"):
+        if not self.verify_dangerous_operation("强制回退到版本点"):
             return
         self._check_dirty_then(
-            lambda: self.reset_with_backup(tag),
+            lambda: self.reset_with_backup(str(ref)),
             "请先提交、暂存或放弃当前修改后再强制回退。",
             block_dirty=True,
         )
@@ -1162,11 +1212,28 @@ class MainWindow(QMainWindow):
     def reset_with_backup(self, ref):
         backup = BackupManager(self.git).create_backup("before-reset")
         self.log(f"[备份分支] 已创建 {backup}")
-        result = self.git.reset_hard(ref)
+        restore_branch = self._next_restore_branch_name(ref)
+        was_detached = self.git.current_branch() == "(detached)"
+        result = self.git.reset_hard_attached(ref, restore_branch)
         if not result.ok:
             raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "强制回退失败")
+        if was_detached:
+            self.log(f"[恢复分支] 已创建并切换到 {restore_branch}")
         self.log(f"[恢复提示] 如果回退错误，可在“备份管理”中恢复 {backup}")
         return result
+
+    def _next_restore_branch_name(self, ref):
+        ref_text = str(ref).strip()
+        ref_label = ref_text[:8] if len(ref_text) >= 12 and all(char in "0123456789abcdefABCDEF" for char in ref_text) else ref_text
+        safe_ref = "".join(char if char.isalnum() or char in "._-" else "-" for char in ref_label).strip("-")
+        base_name = f"work/restore-{safe_ref or 'version'}"
+        branches = set(self.git.list_branches())
+        branch_name = base_name
+        suffix = 2
+        while branch_name in branches:
+            branch_name = f"{base_name}-{suffix}"
+            suffix += 1
+        return branch_name
 
     def ensure_protection_password(self):
         if protection_enabled(self.config):
@@ -1257,8 +1324,8 @@ class MainWindow(QMainWindow):
         scrollbar.setValue(scrollbar.maximum())
 
     def _retranslate_ui(self):
-        self.setWindowTitle(tr("FST-GIT发布工具V1.0"))
-        self.title_label.setText(tr("FST-GIT发布工具V1.0"))
+        self.setWindowTitle(tr("FST-GIT发布工具V1.1"))
+        self.title_label.setText(tr("FST-GIT发布工具V1.1"))
         self.subtitle_label.setText(tr("Git 版本管理 / 清理 / Release 打包"))
         self.repo_label.setText(tr(self.last_repo_text))
         self.select_path_button.setText(tr("选择工程目录"))
@@ -1276,24 +1343,25 @@ class MainWindow(QMainWindow):
         self.tabs.setTabText(1, tr("分支管理"))
         self.tabs.setTabText(2, tr("历史记录"))
         self.tabs.setTabText(3, tr("版本对比"))
-        self.tabs.setTabText(4, tr("工程清理"))
-        self.tabs.setTabText(5, tr("远程同步"))
-        self.tabs.setTabText(6, tr("设置"))
+        self.tabs.setTabText(4, tr("工程对比"))
+        self.tabs.setTabText(5, tr("工程清理"))
+        self.tabs.setTabText(6, tr("远程同步"))
+        self.tabs.setTabText(7, tr("设置"))
         self.log_text.setPlaceholderText(tr("Git 命令、清理、打包、错误输出都会显示在这里。"))
         self.log_box.setTitle(tr("执行日志"))
         self.clear_log_button.setText(tr("清空日志"))
         self.version_info_box.setTitle(tr("版本信息"))
         self.version_title_label.setText(tr("版本号"))
         self.desc_title_label.setText(tr("修改说明"))
-        self.tag_select_title_label.setText(tr("选择 tag"))
+        self.tag_select_title_label.setText(tr("选择版本点"))
         self.version_actions_box.setTitle(tr("版本操作"))
         self.version_input.setPlaceholderText(tr("例如 v1.2"))
         self.desc_input.setPlaceholderText(tr("修改说明，例如 修复串口通信问题"))
         self.commit_button.setText(tr("提交版本"))
         self.release_button.setText(tr("发布 Release"))
         self.package_button.setText(tr("一键打包"))
-        self.checkout_tag_button.setText(tr("查看历史版本"))
-        self.reset_tag_button.setText(tr("强制回退到 tag"))
+        self.checkout_tag_button.setText(tr("查看此版本"))
+        self.reset_tag_button.setText(tr("强制回退到此版本"))
         self.branch_box.setTitle(tr("分支操作"))
         self.branch_desc_label.setText(tr("支持创建、切换、删除、强制删除和合并分支。"))
         self.open_branch_button.setText(tr("打开分支管理"))
@@ -1303,6 +1371,9 @@ class MainWindow(QMainWindow):
         self.compare_box.setTitle(tr("版本之间不同点"))
         self.compare_desc_label.setText(tr("选择两个 tag 或 HEAD，查看文件变更统计、提交差异和完整 diff。"))
         self.open_compare_button.setText(tr("打开版本对比"))
+        self.project_compare_box.setTitle(tr("任意工程目录不同点"))
+        self.project_compare_desc_label.setText(tr("选择任意两个工程目录，不依赖 Git，比较文件新增、删除、修改和代码 Diff。"))
+        self.open_project_compare_button.setText(tr("打开工程对比"))
         self.clean_box.setTitle(tr("STM32 工程清理"))
         self.clean_scan_button.setText(tr("扫描可清理文件"))
         self.clean_button.setText(tr("一键清理编译产物"))
@@ -1317,7 +1388,7 @@ class MainWindow(QMainWindow):
         self.settings_desc_label.setText(tr("配置固件目录、发布目录、源码目录、排除规则和远程地址。"))
         self.language_combo_main.setToolTip(tr("界面语言"))
         self.help_button.setText(tr("操作说明"))
-        self.help_button.setToolTip(tr("FST-GIT发布工具V1.0 操作说明"))
+        self.help_button.setToolTip(tr("FST-GIT发布工具V1.1 操作说明"))
         self._update_git_dirs_button()
 
     def apply_language(self, _index=None):
@@ -1349,6 +1420,9 @@ class MainWindow(QMainWindow):
         if not self._require_repository():
             return
         CompareDialog(self.git, self).exec_()
+
+    def open_project_compare_dialog(self):
+        ProjectCompareDialog(self.project_path, self.config, self).exec_()
 
     def open_backup_dialog(self):
         if not self._require_repository():

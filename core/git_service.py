@@ -213,6 +213,24 @@ class GitService:
     def tag(self, version: str) -> GitResult:
         return self.run(["tag", version], check=True)
 
+    def delete_tag(self, version: str) -> GitResult:
+        return self.run(["tag", "-d", version], check=True)
+
+    def resolve_commit(self, ref: str) -> str:
+        result = self.run(["rev-parse", f"{ref}^{{commit}}"], check=True)
+        return result.stdout.strip()
+
+    def commit_has_parent(self, ref: str) -> bool:
+        return self.run(["rev-parse", "--verify", f"{ref}^"]).ok
+
+    def remote_branches_containing(self, ref: str) -> List[str]:
+        result = self.run(["branch", "-r", "--contains", ref])
+        return [
+            line.replace("*", "").strip()
+            for line in result.stdout.splitlines()
+            if line.replace("*", "").strip()
+        ]
+
     def checkout(self, ref: str) -> GitResult:
         return self.run(["checkout", ref])
 
@@ -221,6 +239,11 @@ class GitService:
 
     def reset_hard(self, ref: str) -> GitResult:
         return self.run(["reset", "--hard", ref], check=True)
+
+    def reset_hard_attached(self, ref: str, detached_branch_name: str) -> GitResult:
+        if self.current_branch() == "(detached)":
+            self.create_and_checkout_branch(detached_branch_name)
+        return self.reset_hard(ref)
 
     def pull(self) -> GitResult:
         return self.run(["pull"], check=True)
@@ -381,20 +404,53 @@ class GitService:
         result = self.run(["tag", "--sort=-creatordate"])
         return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
-    def list_compare_refs(self, limit: int = 80) -> List[Dict[str, str]]:
-        refs = [{"label": "HEAD", "ref": "HEAD", "kind": "head"}]
-        for tag in self.list_tags():
-            refs.append({"label": f"tag: {tag}", "ref": tag, "kind": "tag"})
-
-        fmt = "%H%x09%h%x09%ad%x09%s"
-        result = self.run(["log", f"--max-count={limit}", "--date=short", f"--pretty=format:{fmt}"])
-        for line in result.stdout.splitlines():
-            parts = line.split("\t", 3)
-            if len(parts) != 4:
+    def list_compare_refs(self, limit: Optional[int] = None) -> List[Dict[str, str]]:
+        head_result = self.run([
+            "log",
+            "-1",
+            "--date=format-local:%Y-%m-%d %H:%M",
+            "--pretty=format:%ad%x09%s",
+            "HEAD",
+        ])
+        head_label = "HEAD"
+        if head_result.ok and head_result.stdout.strip():
+            parts = head_result.stdout.strip().split("\t", 1)
+            head_details = "  ".join(part for part in parts if part)
+            if head_details:
+                head_label = f"HEAD ({head_details})"
+        refs = [{"label": head_label, "ref": "HEAD", "kind": "head"}]
+        tag_format = (
+            "%(refname:short)%09%(creatordate:format-local:%Y-%m-%d %H:%M)%09"
+            "%(if)%(*subject)%(then)%(*subject)%(else)%(subject)%(end)"
+        )
+        tag_result = self.run([
+            "for-each-ref",
+            "--sort=-creatordate",
+            f"--format={tag_format}",
+            "refs/tags",
+        ])
+        for line in tag_result.stdout.splitlines():
+            parts = line.split("\t", 2)
+            if len(parts) != 3:
                 continue
-            full_hash, short_hash, date, subject = parts
+            tag, date, subject = parts
+            label = f"tag: {tag}  {date}"
+            if subject:
+                label += f"  {subject}"
+            refs.append({"label": label, "ref": tag, "kind": "tag"})
+
+        fmt = "%H%x09%ad%x09%s"
+        command = ["log", "--all", "--date=format-local:%Y-%m-%d %H:%M", f"--pretty=format:{fmt}"]
+        if limit is not None:
+            command.insert(2, f"--max-count={limit}")
+        result = self.run(command)
+        for line in result.stdout.splitlines():
+            parts = line.split("\t", 2)
+            if len(parts) != 3:
+                continue
+            full_hash, date, subject = parts
             refs.append({
-                "label": f"commit: {short_hash}  {date}  {subject}",
+                "label": f"commit: {date}  {subject}",
                 "ref": full_hash,
                 "kind": "commit",
             })
@@ -425,9 +481,12 @@ class GitService:
     def merge_branch(self, name: str) -> GitResult:
         return self.run(["merge", name])
 
-    def commit_history(self, limit: int = 100) -> str:
+    def commit_history(self, limit: Optional[int] = None) -> str:
         fmt = "%h%x09%ad%x09%d%x09%s"
-        return self.run(["log", "--all", f"--max-count={limit}", "--date=short", f"--pretty=format:{fmt}"]).stdout
+        command = ["log", "--all", "--date=short", f"--pretty=format:{fmt}"]
+        if limit is not None:
+            command.insert(2, f"--max-count={limit}")
+        return self.run(command).stdout
 
     def diff(self, ref: Optional[str] = None) -> str:
         if ref:

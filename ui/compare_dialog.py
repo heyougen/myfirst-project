@@ -1,6 +1,5 @@
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtWidgets import (
-    QComboBox,
     QDialog,
     QFormLayout,
     QHBoxLayout,
@@ -15,11 +14,13 @@ try:
     from core.git_worker import TaskWorker
     from ui.diff_view import DiffView
     from ui.help_widgets import make_help_box
+    from ui.version_ref_combo import VersionRefComboBox
 except ModuleNotFoundError:
     from stm32_git_release_tool.core.i18n import tr
     from stm32_git_release_tool.core.git_worker import TaskWorker
     from stm32_git_release_tool.ui.diff_view import DiffView
     from stm32_git_release_tool.ui.help_widgets import make_help_box
+    from stm32_git_release_tool.ui.version_ref_combo import VersionRefComboBox
 
 
 class CompareDialog(QDialog):
@@ -32,8 +33,8 @@ class CompareDialog(QDialog):
         self.resize(1280, 760)
         self.setMinimumSize(980, 620)
 
-        self.base_combo = QComboBox()
-        self.target_combo = QComboBox()
+        self.base_combo = VersionRefComboBox()
+        self.target_combo = VersionRefComboBox()
         self.refresh_button = QPushButton(tr("刷新版本"))
         self.stat_button = QPushButton(tr("文件变更统计"))
         self.commits_button = QPushButton(tr("提交差异"))
@@ -62,7 +63,7 @@ class CompareDialog(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addWidget(make_help_box("版本对比说明", [
-            "基准版本下拉框：选择旧版本，可以是某个 tag，也可以是 HEAD。",
+            "基准版本下拉框：选择旧版本，可以搜索 tag、commit、日期和修改说明。",
             "目标版本下拉框：选择新版本。对比结果表示从基准版本到目标版本发生的变化。",
             "刷新版本按钮：重新读取 tag 列表。新增 tag 或切换工程后使用。",
             "交换按钮：交换基准版本和目标版本，方便反向查看差异。",
@@ -118,11 +119,8 @@ class CompareDialog(QDialog):
 
     def load_versions(self):
         def apply(refs):
-            self.base_combo.clear()
-            self.target_combo.clear()
-            for item in refs:
-                self.base_combo.addItem(item["label"], item["ref"])
-                self.target_combo.addItem(item["label"], item["ref"])
+            self.base_combo.set_refs(refs)
+            self.target_combo.set_refs(refs)
             if len(refs) > 1:
                 self.base_combo.setCurrentIndex(1)
                 self.target_combo.setCurrentIndex(0)
@@ -134,6 +132,8 @@ class CompareDialog(QDialog):
 
     @staticmethod
     def selected_ref(combo):
+        if hasattr(combo, "current_ref"):
+            return combo.current_ref()
         ref = combo.currentData()
         if ref:
             return str(ref).strip()
